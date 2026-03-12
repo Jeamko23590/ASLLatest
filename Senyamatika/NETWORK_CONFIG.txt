@@ -1,0 +1,21 @@
+SenyaMatika Network Configuration
+================================
+
+Generated: Sun 03/08/2026 21:24:46.30
+
+Local IP: 192.168.1.138
+Backend URL: http://192.168.1.138:3000/api
+Health Check: http://192.168.1.138:3000/health
+
+Flutter Configuration:
+  File: lib\backend\network_config.dart
+  Import: import 'package:senyamatika_math_app/backend/network_config.dart';
+  Usage: NetworkConfig.backendUrl
+
+Start Backend:
+  cd backend
+  npm start
+
+Test Connection:
+  curl http://192.168.1.138:3000/health
+
