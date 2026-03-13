@@ -2865,8 +2865,9 @@ class _FrontPageScreenState extends State<FrontPageScreen>
   }
 
   // Function to launch Senyamatikard website
+  // Update the IP address below to match your computer's WiFi IP
   Future<void> _launchSenyamatikard() async {
-    final Uri url = Uri.parse('https://senyamatikard.figma.site/');
+    final Uri url = Uri.parse('http://192.168.1.59:5173/');
     
     try {
       if (await canLaunchUrl(url)) {
