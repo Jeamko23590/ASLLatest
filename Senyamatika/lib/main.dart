@@ -7167,7 +7167,7 @@ class AboutScreen extends StatelessWidget {
                   _buildInfoRow('Version', '1.0.0'),
                   _buildInfoRow('Last Updated', 'March 2026'),
                   _buildInfoRow('Developer', 'SenyaMatika Team'),
-                  _buildInfoRow('Compatibility', 'Android 11.0+'),
+                  _buildInfoRow('Compatibility', 'Android 13.0+'),
                 ],
               ),
             ),
@@ -8620,7 +8620,7 @@ class VideoDataManager {
   }
 }
 
-// ============ UPDATED PROGRESS MANAGER WITH PERSISTENCE ============
+// ============ UPDATED PROGRESS MANAGER ============
 class ProgressManager {
   static final ProgressManager _instance = ProgressManager._internal();
   factory ProgressManager() => _instance;
@@ -8633,10 +8633,8 @@ class ProgressManager {
   final _unlockController = StreamController<String>.broadcast();
   Stream<String> get unlockStream => _unlockController.stream;
 
-  // Set current user ID for progress tracking
   void setCurrentUser(String? userId) {
     if (_currentUserId != userId) {
-      // Save current progress before switching users
       if (_currentUserId != null && _isInitialized) {
         _saveProgressToStorage();
       }
@@ -8649,7 +8647,6 @@ class ProgressManager {
     }
   }
 
-  // Load progress from Hive storage
   Future<void> _loadProgressFromStorage() async {
     if (_currentUserId == null) return;
     
@@ -8663,28 +8660,24 @@ class ProgressManager {
             MapEntry(key.toString(), Map<String, dynamic>.from(value as Map))
           )
         );
-        debugPrint('✅ Loaded progress for user: $_currentUserId');
       } else {
         _initializeEmptyProgress();
       }
       _isInitialized = true;
     } catch (e) {
-      debugPrint('⚠️ Error loading progress: $e');
       _initializeEmptyProgress();
       _isInitialized = true;
     }
   }
 
-  // Save progress to Hive storage
   Future<void> _saveProgressToStorage() async {
     if (_currentUserId == null) return;
     
     try {
       final box = Hive.box('settings');
       await box.put('progress_$_currentUserId', _progressData);
-      debugPrint('💾 Saved progress for user: $_currentUserId');
     } catch (e) {
-      debugPrint('⚠️ Error saving progress: $e');
+      print('Error saving progress: $e');
     }
   }
 
@@ -8724,17 +8717,17 @@ class ProgressManager {
   void markVideoCompleted(String lessonName, String language, int subLessonIndex, String videoTitle) {
     initialize();
     
-    final key = '$lessonName|$language|$subLessonIndex|$videoTitle|${DateTime.now().millisecondsSinceEpoch}';
-    final now = DateTime.now();
+    final key = '$lessonName|$language|$subLessonIndex|$videoTitle';
     
     if (!_progressData['video_lessons']!.containsKey(key)) {
+      final now = DateTime.now();
+      
       _progressData['video_lessons']![key] = {
         'lesson_name': lessonName,
         'language': language,
         'sub_lesson_index': subLessonIndex,
         'video_title': videoTitle,
         'completed_at': now.toIso8601String(),
-        'watched_duration': '100%',
         'status': 'completed',
       };
       
@@ -8743,7 +8736,7 @@ class ProgressManager {
     }
     
     _updateProgressPercentage();
-    _saveProgressToStorage(); // Persist changes
+    _saveProgressToStorage();
   }
 
   // ============ SUBTOPIC COMPLETION METHODS ============
@@ -8755,9 +8748,10 @@ class ProgressManager {
     }
     
     final key = '$lessonName|$subtopic';
-    final now = DateTime.now();
     
     if (!_progressData['subtopic_completion']!.containsKey(key)) {
+      final now = DateTime.now();
+      
       _progressData['subtopic_completion']![key] = {
         'lesson_name': lessonName,
         'subtopic': subtopic,
@@ -8765,8 +8759,9 @@ class ProgressManager {
         'status': 'completed',
         'type': 'video'
       };
-      _saveProgressToStorage(); // Persist changes
     }
+    
+    _saveProgressToStorage();
   }
 
   bool isSubtopicCompleted(String lessonName, String subtopic) {
@@ -8802,16 +8797,18 @@ class ProgressManager {
     }
     
     final key = lessonName;
-    final now = DateTime.now();
     
     if (!_progressData['lesson_completion']!.containsKey(key)) {
+      final now = DateTime.now();
+      
       _progressData['lesson_completion']![key] = {
         'lesson_name': lessonName,
         'completed_at': now.toIso8601String(),
         'status': 'completed',
       };
-      _saveProgressToStorage(); // Persist changes
     }
+    
+    _saveProgressToStorage();
   }
 
   bool isLessonCompleted(String lessonName) {
@@ -8840,101 +8837,95 @@ class ProgressManager {
     return completedCount == videos.length;
   }
 
-  Map<String, dynamic> getLessonCompletionStatus(String lessonName) {
-    initialize();
-    
-    final videos = VideoDataManager.getVideos(lessonName);
-    int completedCount = 0;
-    List<String> completedVideos = [];
-    
-    for (var video in videos) {
-      if (isSubtopicCompleted(lessonName, video['title'])) {
-        completedCount++;
-        completedVideos.add(video['title']);
-      }
-    }
-    
-    return {
-      'totalVideos': videos.length,
-      'completedVideos': completedCount,
-      'isFullyCompleted': completedCount == videos.length,
-      'completedVideoTitles': completedVideos,
-      'lessonCompleted': isLessonCompleted(lessonName),
-    };
-  }
-
   // ============ LESSON UNLOCK METHODS ============
   bool isLessonUnlocked(String lessonName) {
     initialize();
     
-    final allLessons = TopicsData.getAllLessons();
-    
-    int lessonIndex = -1;
-    for (int i = 0; i < allLessons.length; i++) {
-      if (allLessons[i].title == lessonName) {
-        lessonIndex = i;
-        break;
-      }
+    // Number Values lessons
+    if (lessonName == 'Whole Numbers') return true;
+    if (lessonName == 'Comparison') {
+      return isLessonFullyCompleted('Whole Numbers');
     }
     
-    if (lessonName == 'Whole Numbers') return true;
+    // Fundamental Operations lessons
+    if (lessonName == 'Addition') {
+      return isTopicUnlocked('Fundamental Operations');
+    }
+    if (lessonName == 'Subtraction') {
+      return isLessonFullyCompleted('Addition');
+    }
+    if (lessonName == 'Multiplication') {
+      return isLessonFullyCompleted('Subtraction');
+    }
+    if (lessonName == 'Division') {
+      return isLessonFullyCompleted('Multiplication');
+    }
     
-    if (lessonIndex > 0) {
-      final previousLesson = allLessons[lessonIndex - 1];
-      return isLessonCompleted(previousLesson.title);
+    // Other topics - first lesson is unlocked if topic is unlocked
+    if (lessonName == 'Fraction' || 
+        lessonName == 'Decimal Numbers' || 
+        lessonName == 'Percentage' || 
+        lessonName == 'Algebra') {
+      return isTopicUnlocked(lessonName);
     }
     
     return false;
   }
 
-  // ============ TOPIC METHODS ============
-  void markTopicCompleted(String topicName) {
-    initialize();
+  // ============ LESSON PROGRESS METHODS ============
+  Map<String, dynamic> getLessonProgress(String lessonName) {
+    final videosCompleted = getCompletedVideosForLesson(lessonName);
+    final exercisesCompleted = getCompletedExercisesForLesson(lessonName);
+    final completedSubtopics = getCompletedSubtopicsForLesson(lessonName);
+    final isUnlocked = isLessonUnlocked(lessonName);
+    final isCompleted = isLessonCompleted(lessonName);
     
-    if (!_progressData.containsKey('topic_completion')) {
-      _progressData['topic_completion'] = {};
-    }
+    final videoCount = VideoDataManager.getVideoCount(lessonName);
+    final exerciseCount = 1;
+    final subtopicCount = TopicsData.getSubtopicCountForLesson(lessonName);
     
-    final now = DateTime.now();
-    _progressData['topic_completion']![topicName] = {
-      'topic_name': topicName,
-      'completed_at': now.toIso8601String(),
+    final lessonExercises = getExerciseScoresByLesson(lessonName);
+    final averageScore = lessonExercises.isNotEmpty
+        ? lessonExercises.fold(0.0, (sum, ex) => sum + (ex['percentage'] as double)) / lessonExercises.length
+        : 0.0;
+    
+    double videoProgress = videoCount > 0 ? (videosCompleted / videoCount * 40) : 0;
+    double exerciseProgress = exerciseCount > 0 ? (exercisesCompleted / exerciseCount * 30) : 0;
+    double subtopicProgress = subtopicCount > 0 ? (completedSubtopics.length / subtopicCount * 30) : 0;
+    
+    double totalProgress = videoProgress + exerciseProgress + subtopicProgress;
+    totalProgress = totalProgress > 100 ? 100 : totalProgress;
+    
+    return {
+      'lesson_name': lessonName,
+      'videos_completed': videosCompleted,
+      'exercises_completed': exercisesCompleted,
+      'completed_subtopics': completedSubtopics,
+      'videoCount': videoCount,
+      'exerciseCount': exerciseCount,
+      'subtopicCount': subtopicCount,
+      'average_score': averageScore,
+      'total_attempts': lessonExercises.length,
+      'best_score': lessonExercises.isNotEmpty
+          ? lessonExercises.map((e) => e['percentage'] as double).reduce((a, b) => a > b ? a : b)
+          : 0.0,
+      'progress': totalProgress,
+      'isUnlocked': isUnlocked,
+      'isCompleted': isCompleted,
     };
-    _saveProgressToStorage(); // Persist changes
   }
 
-  bool isTopicCompleted(String topicName) {
+  // ============ VIDEO COUNT METHODS ============
+  int getCompletedVideosForLesson(String lessonName) {
     initialize();
-    
-    if (!_progressData.containsKey('topic_completion')) {
-      return false;
-    }
-    
-    return _progressData['topic_completion']!.containsKey(topicName);
+    return _progressData['video_lessons']!.values.where((video) {
+      return video['lesson_name'] == lessonName;
+    }).length;
   }
 
-  bool isTopicUnlocked(String topicName) {
+  int getCompletedVideosCount() {
     initialize();
-    
-    if (topicName == 'Number Values') return true;
-    
-    return _progressData['topic_unlock']!.containsKey(topicName);
-  }
-
-  void unlockTopic(String topicName) {
-    initialize();
-    
-    if (!_progressData.containsKey('topic_unlock')) {
-      _progressData['topic_unlock'] = {};
-    }
-    
-    _progressData['topic_unlock']![topicName] = {
-      'topic_name': topicName,
-      'unlocked_at': DateTime.now().toIso8601String(),
-    };
-    
-    _unlockController.add(topicName);
-    _saveProgressToStorage(); // Persist changes
+    return _progressData['overall_stats']!['total_videos_watched'] as int;
   }
 
   // ============ EXERCISE METHODS ============
@@ -8974,7 +8965,7 @@ class ProgressManager {
         totalExercises > 0 ? (totalScore / totalExercises).toDouble() : 0.0;
     
     _updateProgressPercentage();
-    _saveProgressToStorage(); // Persist changes
+    _saveProgressToStorage();
   }
 
   List<Map<String, dynamic>> getExerciseScoresByLesson(String lessonName) {
@@ -9001,64 +8992,88 @@ class ProgressManager {
     return _progressData['overall_stats']!['total_exercises_completed'] as int;
   }
 
-  // ============ VIDEO COUNT METHODS ============
-  int getCompletedVideosForLesson(String lessonName) {
+  // ============ TOPIC METHODS ============
+  void markTopicCompleted(String topicName) {
     initialize();
-    return _progressData['video_lessons']!.values.where((video) {
-      return video['lesson_name'] == lessonName;
-    }).length;
-  }
-
-  int getCompletedVideosCount() {
-    initialize();
-    return _progressData['overall_stats']!['total_videos_watched'] as int;
-  }
-
-  // ============ LESSON PROGRESS METHODS ============
-  Map<String, dynamic> getLessonProgress(String lessonName) {
-    final videosCompleted = getCompletedVideosForLesson(lessonName);
-    final exercisesCompleted = getCompletedExercisesForLesson(lessonName);
-    final completedSubtopics = getCompletedSubtopicsForLesson(lessonName);
-    final isUnlocked = isLessonUnlocked(lessonName);
-    final isCompleted = isLessonCompleted(lessonName);
     
-    final videoCount = VideoDataManager.getVideoCount(lessonName);
-    final exerciseCount = 1; // One comprehensive exercise per lesson
-    final subtopicCount = TopicsData.getSubtopicCountForLesson(lessonName);
+    if (!_progressData.containsKey('topic_completion')) {
+      _progressData['topic_completion'] = {};
+    }
     
-    final lessonExercises = getExerciseScoresByLesson(lessonName);
-    final averageScore = lessonExercises.isNotEmpty
-        ? lessonExercises.fold(0.0, (sum, ex) => sum + (ex['percentage'] as double)) / lessonExercises.length
-        : 0.0;
-    
-    final videoProgress = videoCount > 0 ? (videosCompleted / videoCount * 40) : 0;
-    final exerciseProgress = exerciseCount > 0 ? (exercisesCompleted / exerciseCount * 30) : 0;
-    final subtopicProgress = subtopicCount > 0 ? (completedSubtopics.length / subtopicCount * 30) : 0;
-    final totalProgress = videoProgress + exerciseProgress + subtopicProgress;
-    
-    return {
-      'lesson_name': lessonName,
-      'videos_completed': videosCompleted,
-      'exercises_completed': exercisesCompleted,
-      'completed_subtopics': completedSubtopics,
-      'videoCount': videoCount,
-      'exerciseCount': exerciseCount,
-      'subtopicCount': subtopicCount,
-      'average_score': averageScore,
-      'total_attempts': lessonExercises.length,
-      'best_score': lessonExercises.isNotEmpty
-          ? lessonExercises.map((e) => e['percentage'] as double).reduce((a, b) => a > b ? a : b)
-          : 0.0,
-      'progress': totalProgress,
-      'isUnlocked': isUnlocked,
-      'isCompleted': isCompleted,
+    final now = DateTime.now();
+    _progressData['topic_completion']![topicName] = {
+      'topic_name': topicName,
+      'completed_at': now.toIso8601String(),
     };
+    _saveProgressToStorage();
+  }
+
+  bool isTopicCompleted(String topicName) {
+    initialize();
+    
+    if (!_progressData.containsKey('topic_completion')) {
+      return false;
+    }
+    
+    return _progressData['topic_completion']!.containsKey(topicName);
+  }
+
+  bool isTopicUnlocked(String topicName) {
+    initialize();
+    
+    if (topicName == 'Number Values') return true;
+    
+    // Check specific topic unlock conditions
+    if (topicName == 'Fundamental Operations') {
+      // Check if both Whole Numbers and Comparison are fully completed
+      return isLessonFullyCompleted('Whole Numbers') && 
+             isLessonFullyCompleted('Comparison');
+    }
+    
+    if (topicName == 'Fraction') {
+      // Check if all Fundamental Operations lessons are fully completed
+      return isLessonFullyCompleted('Addition') &&
+             isLessonFullyCompleted('Subtraction') &&
+             isLessonFullyCompleted('Multiplication') &&
+             isLessonFullyCompleted('Division');
+    }
+    
+    if (topicName == 'Decimal Numbers') {
+      return isLessonFullyCompleted('Fraction');
+    }
+    
+    if (topicName == 'Percentage') {
+      return isLessonFullyCompleted('Decimal Numbers');
+    }
+    
+    if (topicName == 'Algebra') {
+      return isLessonFullyCompleted('Percentage');
+    }
+    
+    return _progressData['topic_unlock']!.containsKey(topicName);
+  }
+
+  void unlockTopic(String topicName) {
+    initialize();
+    
+    if (!_progressData.containsKey('topic_unlock')) {
+      _progressData['topic_unlock'] = {};
+    }
+    
+    _progressData['topic_unlock']![topicName] = {
+      'topic_name': topicName,
+      'unlocked_at': DateTime.now().toIso8601String(),
+    };
+    
+    _unlockController.add(topicName);
+    _saveProgressToStorage();
   }
 
   // ============ OVERALL STATS METHODS ============
   double getOverallProgressPercentage() {
     initialize();
-    return (_progressData['overall_stats']!['progress_percentage'] as int).toDouble();
+    int progress = _progressData['overall_stats']!['progress_percentage'] as int;
+    return progress > 100 ? 100.0 : progress.toDouble();
   }
 
   Map<String, dynamic> getOverallStats() {
@@ -9066,14 +9081,13 @@ class ProgressManager {
     return Map<String, dynamic>.from(_progressData['overall_stats']!);
   }
 
-  // ============ HELPER METHODS ============
   List<Map<String, dynamic>> getLessonVideos(String lessonName) {
     return VideoDataManager.getVideos(lessonName);
   }
 
   void clearAllProgress() {
     _initializeEmptyProgress();
-    _saveProgressToStorage(); // Clear from storage too
+    _saveProgressToStorage();
   }
 
   void _updateProgressPercentage() {
@@ -9084,12 +9098,16 @@ class ProgressManager {
     final exerciseWeight = 0.6;
     
     final totalVideos = VideoDataManager.getTotalVideos();
-    final totalExercises = 13; // Total number of exercises
+    final totalExercises = 13;
     
     final videoProgress = totalVideos > 0 ? (videosWatched / totalVideos) : 0;
     final exerciseProgress = totalExercises > 0 ? (exercisesCompleted / totalExercises) : 0;
     
-    final overallProgress = (videoProgress * videoWeight + exerciseProgress * exerciseWeight) * 100;
+    double overallProgress = (videoProgress * videoWeight + exerciseProgress * exerciseWeight) * 100;
+    
+    if (overallProgress > 100) {
+      overallProgress = 100;
+    }
     
     _progressData['overall_stats']!['progress_percentage'] = overallProgress.toInt();
   }
@@ -9753,7 +9771,7 @@ class _TopicsScreenState extends State<TopicsScreen>
   }
 }
 
-// ============ COMPLETE UPDATED NUMBER VALUES VIDEO SCREEN ============
+// ============ UPDATED NUMBER VALUES VIDEO SCREEN - AUTO BACK ============
 class NumberValuesVideoScreen extends StatefulWidget {
   final String lessonTitle;
   final String videoTitle;
@@ -9823,9 +9841,7 @@ class _NumberValuesVideoScreenState extends State<NumberValuesVideoScreen> {
   void _markAsComplete() async {
     if (_isCheckingCompletion) return;
     
-    setState(() {
-      _isCheckingCompletion = true;
-    });
+    setState(() => _isCheckingCompletion = true);
     
     // Mark video as completed
     progressManager.markVideoCompleted(
@@ -9844,186 +9860,54 @@ class _NumberValuesVideoScreenState extends State<NumberValuesVideoScreen> {
     // Small delay to ensure progress is updated
     await Future.delayed(const Duration(milliseconds: 300));
     
-    // Check if lesson is fully completed
-    bool isLessonComplete = progressManager.isLessonFullyCompleted(widget.lessonTitle);
+    setState(() => _isCheckingCompletion = false);
     
-    setState(() {
-      _isCheckingCompletion = false;
-    });
-    
-    // If lesson is fully completed, show completion dialog with options
-    if (isLessonComplete && !progressManager.isLessonCompleted(widget.lessonTitle)) {
-      // Mark the lesson as completed
-      progressManager.markLessonCompleted(widget.lessonTitle);
-      
-      // Show completion dialog with options
-      _showLessonCompletionDialog();
-    } else {
-      // Just show success message
+    // Show success message
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Video marked as complete!',
-            style: const TextStyle(fontFamily: 'Poppins-Regular'),
+            '✓ Video marked as complete!',
+            style: const TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
           behavior: SnackBarBehavior.floating,
         ),
       );
-      
-      // Check if Number Values topic is now fully completed
-      _checkNumberValuesCompletion();
     }
-  }
-
-  void _showLessonCompletionDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            '🎉 Lesson Complete!',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 50),
-                    const SizedBox(height: 10),
-                    Text(
-                      'You completed all videos in',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      widget.lessonTitle,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green[800],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'What would you like to do next?',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          actions: [
-            // Go Back button
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _checkNumberValuesCompletion();
-                Navigator.pop(context); // Go back to lessons screen
-              },
-              child: const Text(
-                'Go Back',
-                style: TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-            ),
-            
-            // Next Lesson button (if applicable)
-            if (_getNextLesson() != null)
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _navigateToNextLesson();
-                },
-                child: const Text('Next Lesson'),
-              ),
-            
-            // Take Exercise button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _navigateToComprehensiveExercise();
-              },
-              child: const Text('Take Exercise'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  String? _getNextLesson() {
-    if (widget.lessonTitle == 'Whole Numbers') {
-      return 'Comparison';
-    }
-    return null;
-  }
-
-  void _navigateToNextLesson() {
-    Navigator.pop(context); // Go back to lessons screen
-    // The NumberValuesLessonsScreen will handle showing Comparison expanded
-  }
-
-  void _navigateToComprehensiveExercise() {
-    // Navigate to the appropriate comprehensive exercise
-    if (widget.lessonTitle == 'Whole Numbers') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const WholeNumbersExerciseScreen(
-          lessonName: 'Whole Numbers',
-          language: 'English',
-        )),
-      ).then((_) => Navigator.pop(context));
-    } else if (widget.lessonTitle == 'Comparison') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ComparisonComprehensiveExerciseScreen(
-          lessonName: 'Comparison',
-          language: 'English',
-        )),
-      ).then((_) => Navigator.pop(context));
+    
+    // Check if Number Values topic is now fully completed
+    _checkNumberValuesCompletion();
+    
+    // AUTO BACK TO LESSONS AFTER SHORT DELAY
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) {
+      Navigator.pop(context); // Go back to lessons list
     }
   }
 
   void _checkNumberValuesCompletion() {
-    // Check if both Whole Numbers and Comparison are completed
     bool wholeNumbersCompleted = progressManager.isLessonCompleted('Whole Numbers');
     bool comparisonCompleted = progressManager.isLessonCompleted('Comparison');
     
     if (wholeNumbersCompleted && comparisonCompleted) {
-      // Directly unlock Fundamental Operations
+      progressManager.markTopicCompleted('Number Values');
       progressManager.unlockTopic('Fundamental Operations');
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '🔓 Fundamental Operations is now unlocked!',
-            style: const TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold, fontSize: 16),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '🔓 Fundamental Operations is now unlocked!',
+              style: const TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
           ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -10318,7 +10202,7 @@ class _NumberValuesVideoScreenState extends State<NumberValuesVideoScreen> {
   }
 }
 
-// ============ NUMBER VALUES LESSONS SCREEN (FIXED - WITH DURATION FIELDS) ============
+// ============ UPDATED NUMBER VALUES LESSONS SCREEN ============
 class NumberValuesLessonsScreen extends StatefulWidget {
   const NumberValuesLessonsScreen({super.key});
 
@@ -10327,15 +10211,12 @@ class NumberValuesLessonsScreen extends StatefulWidget {
 }
 
 class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
-  // Track which lessons are expanded
   final Map<String, bool> _expandedLessons = {
     'whole_numbers': true,
     'comparison': false,
   };
 
-  // Lesson data structure - MAY DURATION NA PARA HINDI MAG-ERROR
   final List<Map<String, dynamic>> _lessons = [
-    // WHOLE NUMBERS - MAY DURATION NA ANG BAWAT VIDEO
     {
       'id': 'whole_numbers',
       'title': 'Whole Numbers',
@@ -10365,7 +10246,6 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
       'icon': Icons.numbers,
     },
     
-    // COMPARISON - MAY DURATION NA RIN
     {
       'id': 'comparison',
       'title': 'Comparison',
@@ -10376,13 +10256,13 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
           'title': 'Compare Groups of Objects',
           'videoUrl': 'assets/Videos/ComparisonPt1.mp4',
           'learningObjective': 'Compare two groups/sets of objects',
-          'duration': '2:17',  // <--- IMPORTANTE: MAY DURATION NA
+          'duration': '2:17',
         },
         {
           'title': 'Arrange Numbers in Order',
           'videoUrl': 'assets/Videos/ComparisonPt2.mp4',
           'learningObjective': 'Arrange objects/numbers from least to greatest',
-          'duration': '1:25',  // <--- IMPORTANTE: MAY DURATION NA
+          'duration': '1:25',
         },
       ],
       'color': const Color(0xFFF5C6D6),
@@ -10393,7 +10273,6 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
   @override
   void initState() {
     super.initState();
-    // Listen for progress updates
     progressManager.unlockStream.listen((topicName) {
       if (mounted) {
         setState(() {});
@@ -10401,20 +10280,14 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
     });
   }
 
-  // Check if lesson is unlocked
   bool _isLessonUnlocked(String lessonTitle) {
-    if (lessonTitle == 'Whole Numbers') {
-      return true;
-    }
-    
+    if (lessonTitle == 'Whole Numbers') return true;
     if (lessonTitle == 'Comparison') {
-      return progressManager.isLessonCompleted('Whole Numbers');
+      return _isLessonFullyCompleted('Whole Numbers');
     }
-    
-    return progressManager.isLessonUnlocked(lessonTitle);
+    return false;
   }
 
-  // Check if ALL videos in a lesson are completed
   bool _isLessonFullyCompleted(String lessonTitle) {
     try {
       final lesson = _lessons.firstWhere(
@@ -10437,7 +10310,6 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
     }
   }
 
-  // Check if video is unlocked (sequential within lesson)
   bool _isVideoUnlocked(String lessonTitle, int videoIndex) {
     try {
       final lesson = _lessons.firstWhere(
@@ -10490,23 +10362,10 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
       ),
     ).then((_) {
       setState(() {});
-      
-      // Check if lesson is now fully completed
-      _checkLessonCompletion(lessonTitle);
-      
-      // Check if Number Values topic is now fully completed
       _checkNumberValuesCompletion();
     });
   }
 
-  // Check if lesson is fully completed
-  void _checkLessonCompletion(String lessonTitle) {
-    if (_isLessonFullyCompleted(lessonTitle) && !progressManager.isLessonCompleted(lessonTitle)) {
-      setState(() {});
-    }
-  }
-
-  // Navigate to comprehensive exercise for a lesson
   void _navigateToComprehensiveExercise(String lessonTitle) {
     if (lessonTitle == 'Whole Numbers') {
       Navigator.push(
@@ -10531,30 +10390,34 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
     }
   }
 
-  // Check if Number Values topic is fully completed
   void _checkNumberValuesCompletion() {
-    bool wholeNumbersCompleted = progressManager.isLessonCompleted('Whole Numbers');
-    bool comparisonCompleted = progressManager.isLessonCompleted('Comparison');
+    bool wholeNumbersCompleted = _isLessonFullyCompleted('Whole Numbers');
+    bool comparisonCompleted = _isLessonFullyCompleted('Comparison');
     
     if (wholeNumbersCompleted && comparisonCompleted) {
-      progressManager.markTopicCompleted('Number Values');
-      progressManager.unlockTopic('Fundamental Operations');
+      if (!progressManager.isTopicCompleted('Number Values')) {
+        progressManager.markTopicCompleted('Number Values');
+      }
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '🔓 Fundamental Operations is now unlocked!',
-            style: const TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
+      // Unlock Fundamentals Operations
+      if (!progressManager.isTopicUnlocked('Fundamental Operations')) {
+        progressManager.unlockTopic('Fundamental Operations');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '🔓 Fundamental Operations is now unlocked!',
+              style: const TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
           ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        );
+      }
     }
   }
 
-  // Helper method to get lesson progress
   double _getLessonProgress(String lessonTitle) {
     try {
       final lesson = _lessons.firstWhere(
@@ -10577,7 +10440,6 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
     }
   }
 
-  // Helper method to get completed count
   int _getCompletedCount(String lessonTitle) {
     try {
       final lesson = _lessons.firstWhere(
@@ -10624,7 +10486,6 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -10645,7 +10506,7 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Complete all videos in each lesson to unlock the comprehensive lesson exercise.',
+                    'Complete all videos in each lesson to unlock the next lesson.',
                     style: TextStyle(
                       fontSize: 14,
                       fontFamily: 'Poppins-Regular',
@@ -10658,7 +10519,6 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
             
             const SizedBox(height: 20),
 
-            // Lessons List
             ..._lessons.map((lesson) {
               final isLessonUnlocked = _isLessonUnlocked(lesson['title'] as String);
               final isLessonCompleted = progressManager.isLessonCompleted(lesson['title'] as String);
@@ -10691,7 +10551,6 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
       ),
       child: Column(
         children: [
-          // Lesson Header
           Material(
             color: Colors.transparent,
             child: InkWell(
@@ -10748,34 +10607,7 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
                             ),
                           ),
                           
-                          // Show completion status
-                          if (isFullyCompleted && !isLessonCompleted)
-                            Container(
-                              margin: const EdgeInsets.only(top: 4),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.blue.shade300),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.assignment, size: 10, color: Colors.blue.shade700),
-                                  const SizedBox(width: 2),
-                                  const Text(
-                                    'Exercise Available',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          
-                          if (!isLessonUnlocked && lessonTitle == 'Comparison')
+                          if (lessonTitle == 'Comparison' && !isLessonUnlocked)
                             Container(
                               margin: const EdgeInsets.only(top: 4),
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -10790,7 +10622,7 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
                                   Icon(Icons.lock, size: 10, color: Colors.orange.shade700),
                                   const SizedBox(width: 2),
                                   const Text(
-                                    'Complete "Whole Numbers" first',
+                                    'Complete all Whole Numbers videos first',
                                     style: TextStyle(
                                       fontSize: 9,
                                       color: Colors.orange,
@@ -10800,6 +10632,7 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
                                 ],
                               ),
                             ),
+                          
                           if (isLessonCompleted)
                             Container(
                               margin: const EdgeInsets.only(top: 4),
@@ -10832,7 +10665,6 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
                     if (isLessonUnlocked)
                       Row(
                         children: [
-                          // Show exercise button if lesson is fully completed
                           if (isFullyCompleted && !isLessonCompleted)
                             GestureDetector(
                               onTap: () => _navigateToComprehensiveExercise(lessonTitle),
@@ -10906,7 +10738,6 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
                   ),
                   const SizedBox(height: 15),
                   
-                  // Show progress indicator
                   LinearProgressIndicator(
                     value: _getLessonProgress(lessonTitle),
                     backgroundColor: Colors.grey[300],
@@ -10932,7 +10763,7 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
                       lessonTitle: lessonTitle,
                       videoTitle: video['title'] as String,
                       videoUrl: video['videoUrl'] as String,
-                      duration: video['duration'] as String, // <--- DITO GINAGAMIT ANG DURATION
+                      duration: video['duration'] as String,
                       learningObjective: video['learningObjective'] as String?,
                       index: index,
                       isUnlocked: isVideoUnlocked,
@@ -10940,7 +10771,6 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
                     );
                   }),
                   
-                  // Show exercise button at bottom if lesson is fully completed
                   if (isFullyCompleted && !isLessonCompleted)
                     Padding(
                       padding: const EdgeInsets.only(top: 16),
@@ -10969,9 +10799,9 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
                 ],
               ),
             ),
-          ],
-        ),
-      );
+        ],
+      ),
+    );
   }
 
   Widget _buildVideoItem({
@@ -11056,7 +10886,7 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
                               const Icon(Icons.access_time, size: 12, color: Colors.grey),
                               const SizedBox(width: 4),
                               Text(
-                                duration, // <--- DITO GINAGAMIT ANG DURATION
+                                duration,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontFamily: 'Poppins-Regular',
@@ -15280,7 +15110,6 @@ class FundamentalOperationsLessonsScreen extends StatefulWidget {
 }
 
 class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperationsLessonsScreen> {
-  // Track which lessons are expanded
   final Map<String, bool> _expandedLessons = {
     'addition': false,
     'subtraction': false,
@@ -15288,174 +15117,137 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
     'division': false,
   };
 
-  // Lesson data structure
   final List<Map<String, dynamic>> _lessons = [
-    // ADDITION
     {
       'id': 'addition',
       'title': 'Addition',
       'description': 'Learn how to add numbers',
-      'color': const Color(0xFFA8D5E3), // Blue
+      'color': const Color(0xFFA8D5E3),
       'icon': Icons.add_circle,
       'subtopics': [
         {
           'title': 'Basic Addition Concepts',
-          'learningObjectives': [
-            'Illustrate addition as "putting together" or "combining" sets',
-          ],
+          'learningObjectives': ['Illustrate addition as "putting together" sets'],
           'videoUrl': 'assets/Videos/BasicConcept.mp4',
           'duration': '0:58',
         },
         {
           'title': 'Adding with Objects',
-          'learningObjectives': [
-            'Add quantities up to 20 using concrete objects',
-          ],
+          'learningObjectives': ['Add quantities up to 20 using concrete objects'],
           'videoUrl': 'assets/Videos/Addobject.mp4',
           'duration': '2:04',
         },
         {
           'title': 'Adding One to Two-Digit Numbers',
-          'learningObjectives': [
-            'Add two one to two-digit numbers',
-          ],
+          'learningObjectives': ['Add two one to two-digit numbers'],
           'videoUrl': 'assets/Videos/Add1to2.mp4',
           'duration': '1:27',
         },
         {
           'title': 'Properties of Addition',
-          'learningObjectives': [
-            'Illustrate commutative, associative, and identity properties',
-          ],
+          'learningObjectives': ['Illustrate commutative, associative, and identity properties'],
           'videoUrl': 'assets/Videos/AdditionProperty.mp4',
           'duration': '2:15',
         },
         {
           'title': 'Adding Larger Numbers',
-          'learningObjectives': [
-            'Add up to 4-digit numbers with sums up to 1000',
-          ],
+          'learningObjectives': ['Add up to 4-digit numbers with sums up to 1000'],
           'videoUrl': 'assets/Videos/AddLarge.mp4',
           'duration': '0:56',
         },
       ],
     },
     
-    // SUBTRACTION
     {
       'id': 'subtraction',
       'title': 'Subtraction',
       'description': 'Learn how to subtract numbers',
-      'color': const Color(0xFFF5C6D6), // Pink
+      'color': const Color(0xFFF5C6D6),
       'icon': Icons.remove_circle,
       'subtopics': [
         {
           'title': 'Understanding Subtraction',
-          'learningObjectives': [
-            'Recognize minus (-) sign that indicates subtracting whole numbers',
-          ],
+          'learningObjectives': ['Recognize minus (-) sign'],
           'videoUrl': 'assets/Videos/UnderstandSubtract.mp4',
           'duration': '1:16',
         },
         {
           'title': 'Subtracting with Objects',
-          'learningObjectives': [
-            'Subtract quantities up to 20 using concrete objects',
-          ],
+          'learningObjectives': ['Subtract quantities up to 20 using concrete objects'],
           'videoUrl': 'assets/Videos/SubtractObject.mp4',
           'duration': '0:56', 
         },
         {
           'title': 'Subtracting One to Two-Digit Numbers',
-          'learningObjectives': [
-            'Subtract two one to two-digit numbers',
-          ],
+          'learningObjectives': ['Subtract two one to two-digit numbers'],
           'videoUrl': 'assets/Videos/Subtract1to2.mp4',
           'duration': '1:19',
         },
         {
           'title': 'Subtracting Larger Numbers',
-          'learningObjectives': [
-            'Subtract up to 4-digit numbers with minuends up to 1000',
-          ],
+          'learningObjectives': ['Subtract up to 4-digit numbers'],
           'videoUrl': 'assets/Videos/SubtractLarge.mp4',
           'duration': '0:51',
         },
       ],
     },
     
-    // MULTIPLICATION
     {
       'id': 'multiplication',
       'title': 'Multiplication',
       'description': 'Learn how to multiply numbers',
-      'color': const Color(0xFFC4B1E1), // Purple
+      'color': const Color(0xFFC4B1E1),
       'icon': Icons.close,
       'subtopics': [
         {
           'title': 'Understanding Multiplication',
-          'learningObjectives': [
-            'Illustrate multiplication as repeated addition',
-          ],
+          'learningObjectives': ['Illustrate multiplication as repeated addition'],
           'videoUrl': 'assets/Videos/UnderstandMulti.mp4',
           'duration': '1:16',
         },
         {
           'title': 'Representing Multiplication',
-          'learningObjectives': [
-            'Represent multiplication of numbers',
-          ],
+          'learningObjectives': ['Represent multiplication of numbers'],
           'videoUrl': 'assets/Videos/RepresentMulti.mp4',
           'duration': '1:00',
         },
         {
           'title': 'Multiplying Numbers',
-          'learningObjectives': [
-            'Multiply two one to two-digit numbers',
-          ],
+          'learningObjectives': ['Multiply two one to two-digit numbers'],
           'videoUrl': 'assets/Videos/MultiNumbers.mp4',
           'duration': '1:35',
         },
         {
           'title': 'Properties of Multiplication',
-          'learningObjectives': [
-            'Illustrate the properties of multiplication',
-          ],
+          'learningObjectives': ['Illustrate the properties of multiplication'],
           'videoUrl': 'assets/Videos/MultiProperty.mp4',
           'duration': '1:50',
         },
       ],
     },
     
-    // DIVISION
     {
       'id': 'division',
       'title': 'Division',
       'description': 'Learn how to divide numbers',
-      'color': const Color(0xFFA8D5BA), // Green
+      'color': const Color(0xFFA8D5BA),
       'icon': Icons.percent,
       'subtopics': [
         {
           'title': 'Understanding Division',
-          'learningObjectives': [
-            'Represents division as equal sharing',
-          ],
+          'learningObjectives': ['Represents division as equal sharing'],
           'videoUrl': 'assets/Videos/Division.mp4',
           'duration': '0:56',
         },
         {
           'title': 'Division as Repeated Subtraction',
-          'learningObjectives': [
-            'Illustrate division as repeated subtraction',
-          ],
+          'learningObjectives': ['Illustrate division as repeated subtraction'],
           'videoUrl': 'assets/Videos/DivisionRepeated.mp4',
           'duration': '1:23',
         },
         {
           'title': 'Dividing Numbers',
-          'learningObjectives': [
-            'Divide two one to two-digit numbers',
-          ],
+          'learningObjectives': ['Divide two one to two-digit numbers'],
           'videoUrl': 'assets/Videos/DividingNumbers.mp4',
           'duration': '0:44',
         },
@@ -15466,33 +15258,33 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
   @override
   void initState() {
     super.initState();
-    // Listen for unlock events
     progressManager.unlockStream.listen((topicName) {
-      if (mounted && topicName == 'Fundamental Operations') {
+      if (mounted) {
         setState(() {});
       }
     });
   }
 
-  // Check if lesson is unlocked (sequential within topic)
   bool _isLessonUnlocked(String lessonTitle) {
     if (lessonTitle == 'Addition') {
-      return true; // First lesson is always unlocked
+      return progressManager.isTopicUnlocked('Fundamental Operations');
     }
     
-    // Check previous lesson
-    List<String> lessonOrder = ['Addition', 'Subtraction', 'Multiplication', 'Division'];
-    int currentIndex = lessonOrder.indexOf(lessonTitle);
+    if (lessonTitle == 'Subtraction') {
+      return _isLessonFullyCompleted('Addition');
+    }
     
-    if (currentIndex > 0) {
-      String previousLesson = lessonOrder[currentIndex - 1];
-      return progressManager.isLessonCompleted(previousLesson);
+    if (lessonTitle == 'Multiplication') {
+      return _isLessonFullyCompleted('Subtraction');
+    }
+    
+    if (lessonTitle == 'Division') {
+      return _isLessonFullyCompleted('Multiplication');
     }
     
     return false;
   }
 
-  // Check if ALL videos in a lesson are completed
   bool _isLessonFullyCompleted(String lessonTitle) {
     try {
       final lesson = _lessons.firstWhere(
@@ -15515,7 +15307,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
     }
   }
 
-  // Check if video is unlocked (sequential within lesson)
   bool _isVideoUnlocked(String lessonTitle, int videoIndex) {
     try {
       final lesson = _lessons.firstWhere(
@@ -15534,7 +15325,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
     }
   }
 
-  // Get lesson progress
   double _getLessonProgress(String lessonTitle) {
     try {
       final lesson = _lessons.firstWhere(
@@ -15557,7 +15347,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
     }
   }
 
-  // Get completed count
   int _getCompletedCount(String lessonTitle) {
     try {
       final lesson = _lessons.firstWhere(
@@ -15599,7 +15388,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
       return;
     }
     
-    // Build learning objectives text
     String learningObjectives = (subtopic['learningObjectives'] as List).join('\n• ');
     
     Navigator.push(
@@ -15614,29 +15402,10 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
       ),
     ).then((_) {
       setState(() {});
-      
-      // Check if Fundamental Operations topic is now fully completed
       _checkFundamentalOperationsCompletion();
     });
   }
 
-  // Check if all Fundamental Operations lessons are completed
-  void _checkFundamentalOperationsCompletion() {
-    bool additionCompleted = progressManager.isLessonCompleted('Addition');
-    bool subtractionCompleted = progressManager.isLessonCompleted('Subtraction');
-    bool multiplicationCompleted = progressManager.isLessonCompleted('Multiplication');
-    bool divisionCompleted = progressManager.isLessonCompleted('Division');
-    
-    if (additionCompleted && subtractionCompleted && multiplicationCompleted && divisionCompleted) {
-      // Mark Fundamental Operations topic as completed
-      progressManager.markTopicCompleted('Fundamental Operations');
-      
-      // Unlock Fraction topic
-      progressManager.unlockTopic('Fraction');
-    }
-  }
-
-  // Navigate to comprehensive exercise
   void _navigateToComprehensiveExercise() {
     Navigator.push(
       context,
@@ -15649,8 +15418,43 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
     });
   }
 
+  bool _areAllLessonsCompleted() {
+    return _isLessonFullyCompleted('Addition') &&
+           _isLessonFullyCompleted('Subtraction') &&
+           _isLessonFullyCompleted('Multiplication') &&
+           _isLessonFullyCompleted('Division');
+  }
+
+  void _checkFundamentalOperationsCompletion() {
+    if (_areAllLessonsCompleted()) {
+      if (!progressManager.isTopicCompleted('Fundamental Operations')) {
+        progressManager.markTopicCompleted('Fundamental Operations');
+      }
+      
+      // Unlock Fraction
+      if (!progressManager.isTopicUnlocked('Fraction')) {
+        progressManager.unlockTopic('Fraction');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '🔓 Fraction is now unlocked!',
+              style: const TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isTopicUnlocked = progressManager.isTopicUnlocked('Fundamental Operations');
+    final bool allLessonsCompleted = _areAllLessonsCompleted();
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -15675,15 +15479,19 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF5C6D6).withOpacity(0.3),
+                color: isTopicUnlocked 
+                    ? const Color(0xFFF5C6D6).withOpacity(0.3) 
+                    : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFF5C6D6), width: 2),
+                border: Border.all(
+                  color: isTopicUnlocked ? const Color(0xFFF5C6D6) : Colors.grey.shade400, 
+                  width: 2
+                ),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -15692,25 +15500,18 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'Lora-Regular',
+                      color: isTopicUnlocked ? Colors.black : Colors.grey.shade600,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'Learn addition, subtraction, multiplication, and division',
+                    isTopicUnlocked 
+                        ? 'Learn addition, subtraction, multiplication, and division'
+                        : '🔒 Complete Number Values to unlock',
                     style: TextStyle(
                       fontSize: 14,
                       fontFamily: 'Poppins-Regular',
-                      color: Colors.black54,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Complete all videos in each lesson. When all four lessons are done, a comprehensive topic exercise will be available!',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontFamily: 'Poppins-Regular',
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
+                      color: isTopicUnlocked ? Colors.black54 : Colors.grey.shade600,
                     ),
                   ),
                 ],
@@ -15719,11 +15520,7 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
             
             const SizedBox(height: 20),
 
-            // Check if all lessons are completed to show exercise button
-            if (progressManager.isLessonCompleted('Addition') &&
-                progressManager.isLessonCompleted('Subtraction') &&
-                progressManager.isLessonCompleted('Multiplication') &&
-                progressManager.isLessonCompleted('Division'))
+            if (allLessonsCompleted)
               Container(
                 margin: const EdgeInsets.only(bottom: 20),
                 padding: const EdgeInsets.all(16),
@@ -15750,7 +15547,7 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'You completed all Fundamental Operations lessons!',
+                      'You completed all Fundamental Operations lessons!\nNow test your knowledge with the comprehensive exercise.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 14),
                     ),
@@ -15777,7 +15574,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                 ),
               ),
 
-            // Lessons List with Dropdowns
             ..._lessons.map((lesson) {
               final isLessonUnlocked = _isLessonUnlocked(lesson['title'] as String);
               final isLessonCompleted = progressManager.isLessonCompleted(lesson['title'] as String);
@@ -15810,7 +15606,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
       ),
       child: Column(
         children: [
-          // Lesson Header (Clickable)
           Material(
             color: Colors.transparent,
             child: InkWell(
@@ -15867,33 +15662,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                             ),
                           ),
                           
-                          // Show completion status
-                          if (isFullyCompleted && !isLessonCompleted)
-                            Container(
-                              margin: const EdgeInsets.only(top: 4),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.blue.shade300),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.check_circle, size: 10, color: Colors.blue.shade700),
-                                  const SizedBox(width: 2),
-                                  const Text(
-                                    'Lesson Complete',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          
                           if (!isLessonUnlocked && lessonTitle != 'Addition')
                             Container(
                               margin: const EdgeInsets.only(top: 4),
@@ -15908,17 +15676,18 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                                 children: [
                                   Icon(Icons.lock, size: 10, color: Colors.orange.shade700),
                                   const SizedBox(width: 2),
-                                  const Text(
+                                  Text(
                                     'Complete previous lesson first',
                                     style: TextStyle(
                                       fontSize: 9,
-                                      color: Colors.orange,
+                                      color: Colors.orange.shade700,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
+                          
                           if (isLessonCompleted)
                             Container(
                               margin: const EdgeInsets.only(top: 4),
@@ -15967,69 +15736,65 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
               ),
             ),
           ),
-            // Expanded Subtopics List
-            if (isExpanded && isLessonUnlocked)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
-                  border: Border(top: BorderSide(color: lesson['color'] as Color, width: 1)),
+          if (isExpanded && isLessonUnlocked)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(10),
+                  bottomRight: Radius.circular(10),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lesson['description'] as String,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontFamily: 'Poppins-Regular',
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    
-                    // Progress bar
-                    LinearProgressIndicator(
-                      value: _getLessonProgress(lessonTitle),
-                      backgroundColor: Colors.grey[300],
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${_getCompletedCount(lessonTitle)}/${subtopics.length} videos completed',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 15),
-                    
-                    // Subtopic list
-                    ...List.generate(subtopics.length, (index) {
-                      final subtopic = subtopics[index] as Map<String, dynamic>;
-                      final isVideoUnlocked = _isVideoUnlocked(lessonTitle, index);
-                      final isVideoCompleted = progressManager.isSubtopicCompleted(lessonTitle, subtopic['title'] as String);
-                      
-                      return _buildSubtopicItem(
-                        lessonTitle: lessonTitle,
-                        subtopic: subtopic,
-                        index: index,
-                        isUnlocked: isVideoUnlocked,
-                        isCompleted: isVideoCompleted,
-                      );
-                    }),
-                  ],
-                ),
+                border: Border(top: BorderSide(color: lesson['color'] as Color, width: 1)),
               ),
-          ],
-        ),
-      );
-  
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    lesson['description'] as String,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontFamily: 'Poppins-Regular',
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  
+                  LinearProgressIndicator(
+                    value: _getLessonProgress(lessonTitle),
+                    backgroundColor: Colors.grey[300],
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${_getCompletedCount(lessonTitle)}/${subtopics.length} videos completed',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 15),
+                  
+                  ...List.generate(subtopics.length, (index) {
+                    final subtopic = subtopics[index] as Map<String, dynamic>;
+                    final isVideoUnlocked = _isVideoUnlocked(lessonTitle, index);
+                    final isVideoCompleted = progressManager.isSubtopicCompleted(lessonTitle, subtopic['title'] as String);
+                    
+                    return _buildSubtopicItem(
+                      lessonTitle: lessonTitle,
+                      subtopic: subtopic,
+                      index: index,
+                      isUnlocked: isVideoUnlocked,
+                      isCompleted: isVideoCompleted,
+                    );
+                  }),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _buildSubtopicItem({
@@ -16065,7 +15830,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
               children: [
                 Row(
                   children: [
-                    // Number indicator
                     Container(
                       width: 28,
                       height: 28,
@@ -16091,7 +15855,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                     ),
                     const SizedBox(width: 12),
 
-                    // Video Info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -16108,11 +15871,7 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(
-                                Icons.access_time,
-                                size: 12,
-                                color: Colors.grey,
-                              ),
+                              const Icon(Icons.access_time, size: 12, color: Colors.grey),
                               const SizedBox(width: 4),
                               Text(
                                 subtopic['duration'] as String,
@@ -16136,11 +15895,11 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                                     children: [
                                       Icon(Icons.lock, size: 10, color: Colors.orange.shade700),
                                       const SizedBox(width: 2),
-                                      const Text(
+                                      Text(
                                         'Locked',
                                         style: TextStyle(
                                           fontSize: 9,
-                                          color: Colors.orange,
+                                          color: Colors.orange.shade700,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -16162,11 +15921,11 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                                     children: [
                                       Icon(Icons.check_circle, size: 10, color: Colors.green.shade700),
                                       const SizedBox(width: 2),
-                                      const Text(
+                                      Text(
                                         'Done',
                                         style: TextStyle(
                                           fontSize: 9,
-                                          color: Colors.green,
+                                          color: Colors.green.shade700,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -16180,7 +15939,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                       ),
                     ),
 
-                    // Play/Lock button
                     Container(
                       width: 32,
                       height: 32,
@@ -16201,7 +15959,6 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
                   ],
                 ),
                 
-                // Learning Objectives
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -16266,7 +16023,7 @@ class _FundamentalOperationsLessonsScreenState extends State<FundamentalOperatio
   }
 }
 
-// ============ UPDATED FUNDAMENTAL OPERATIONS VIDEO SCREEN ============
+// ============ UPDATED FUNDAMENTAL OPERATIONS VIDEO SCREEN - AUTO BACK ============
 class FundamentalOperationsVideoScreen extends StatefulWidget {
   final String lessonTitle;
   final String videoTitle;
@@ -16336,9 +16093,7 @@ class _FundamentalOperationsVideoScreenState extends State<FundamentalOperations
   void _markAsComplete() async {
     if (_isCheckingCompletion) return;
     
-    setState(() {
-      _isCheckingCompletion = true;
-    });
+    setState(() => _isCheckingCompletion = true);
     
     // Mark video as completed
     progressManager.markVideoCompleted(
@@ -16357,150 +16112,57 @@ class _FundamentalOperationsVideoScreenState extends State<FundamentalOperations
     // Small delay to ensure progress is updated
     await Future.delayed(const Duration(milliseconds: 300));
     
-    // Check if lesson is fully completed
-    bool isLessonComplete = progressManager.isLessonFullyCompleted(widget.lessonTitle);
+    setState(() => _isCheckingCompletion = false);
     
-    setState(() {
-      _isCheckingCompletion = false;
-    });
-    
-    if (isLessonComplete && !progressManager.isLessonCompleted(widget.lessonTitle)) {
-      // Mark the lesson as completed
-      progressManager.markLessonCompleted(widget.lessonTitle);
-      
-      // Show completion message
+    // Show success message
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '🎉 You completed all videos in ${widget.lessonTitle}!',
+            '✓ Video marked as complete!',
             style: const TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      
-      // Check if all Fundamental Operations lessons are completed
-      _checkFundamentalOperationsCompletion();
-    } else {
-      // Just show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Video marked as complete!',
-            style: const TextStyle(fontFamily: 'Poppins-Regular'),
-          ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
           behavior: SnackBarBehavior.floating,
         ),
       );
     }
+    
+    // Check if all Fundamental Operations lessons are completed
+    _checkFundamentalOperationsCompletion();
+    
+    // AUTO BACK TO LESSONS AFTER SHORT DELAY
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) {
+      Navigator.pop(context); // Go back to lessons list
+    }
   }
 
   void _checkFundamentalOperationsCompletion() {
-    // Check if all four lessons are completed
     bool additionCompleted = progressManager.isLessonCompleted('Addition');
     bool subtractionCompleted = progressManager.isLessonCompleted('Subtraction');
     bool multiplicationCompleted = progressManager.isLessonCompleted('Multiplication');
     bool divisionCompleted = progressManager.isLessonCompleted('Division');
     
     if (additionCompleted && subtractionCompleted && multiplicationCompleted && divisionCompleted) {
-      // Mark Fundamental Operations topic as completed
       progressManager.markTopicCompleted('Fundamental Operations');
-      
-      // Unlock Fraction topic
       progressManager.unlockTopic('Fraction');
       
-      // Show comprehensive exercise dialog
-      _showComprehensiveExerciseDialog();
-    }
-  }
-
-  void _showComprehensiveExerciseDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            '🎉 Topic Complete!',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 50),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'You completed all lessons in',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Fundamental Operations',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Now test your knowledge with the comprehensive topic exercise!',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Later', style: TextStyle(color: Colors.grey)),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '🔓 Fraction is now unlocked!',
+              style: const TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _navigateToComprehensiveExercise();
-              },
-              child: const Text('Take Exercise'),
-            ),
-          ],
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
-      },
-    );
-  }
-
-  void _navigateToComprehensiveExercise() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const FundamentalOperationsExerciseScreen(
-        lessonName: 'Fundamental Operations',
-        language: 'English',
-      )),
-    ).then((_) {
-      // After returning from exercise, go back to lessons
-      Navigator.pop(context);
-    });
+      }
+    }
   }
 
   void _changePlaybackSpeed(double speed) {
@@ -18613,7 +18275,7 @@ class _FundamentalOperationsExerciseScreenState extends State<FundamentalOperati
   }
 }
 
-// ============ UPDATED FRACTION LESSONS SCREEN WITH PROPER EXERCISE BUTTON ============
+// ============ UPDATED FRACTION LESSONS SCREEN ============
 class FractionLessonsScreen extends StatefulWidget {
   const FractionLessonsScreen({super.key});
 
@@ -18622,57 +18284,45 @@ class FractionLessonsScreen extends StatefulWidget {
 }
 
 class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
-  // Track which lessons are expanded
   final Map<String, bool> _expandedLessons = {
     'fraction': false,
   };
 
-  // Lesson data structure with 5 subtopics
   final List<Map<String, dynamic>> _lessons = [
     {
       'id': 'fraction',
       'title': 'Fraction',
       'description': 'Learn about fractions - parts of a whole',
-      'color': const Color(0xFFC4B1E1), // Purple color
+      'color': const Color(0xFFC4B1E1),
       'icon': Icons.pie_chart,
       'subtopics': [
         {
           'title': 'Recognizing Fractions',
-          'learningObjectives': [
-            'Recognize and identify ¼, ½, ¾ of a whole object',
-          ],
+          'learningObjectives': ['Recognize and identify ¼, ½, ¾ of a whole object'],
           'videoUrl': 'assets/Videos/FractionsRecognizing.mp4',
           'duration': '1:04',
         },
         {
           'title': 'Describing Fractions',
-          'learningObjectives': [
-            'Describe a whole and ¼, ½ and ¾ of a whole',
-          ],
+          'learningObjectives': ['Describe a whole and ¼, ½ and ¾ of a whole'],
           'videoUrl': 'assets/Videos/FractionsDescribing.mp4',
           'duration': '1:33',
         },
         {
           'title': 'Reading Fractions',
-          'learningObjectives': [
-            'Read fractions correctly',
-          ],
+          'learningObjectives': ['Read fractions correctly'],
           'videoUrl': 'assets/Videos/FractionsReading.mp4',
           'duration': '0:48',
         },
         {
           'title': 'Comparing Fractions',
-          'learningObjectives': [
-            'Compare fractions using relation symbols (<, >, =)',
-          ],
+          'learningObjectives': ['Compare fractions using relation symbols (<, >, =)'],
           'videoUrl': 'assets/Videos/FractionsComparing.mp4',
           'duration': '1:10',
         },
         {
           'title': 'Ordering Fractions',
-          'learningObjectives': [
-            'Arrange fractions in increasing and decreasing order',
-          ],
+          'learningObjectives': ['Arrange fractions in increasing and decreasing order'],
           'videoUrl': 'assets/Videos/FractionsOrdering.mp4',
           'duration': '0:56',
         },
@@ -18683,43 +18333,36 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
   @override
   void initState() {
     super.initState();
-    // Listen for unlock events
     progressManager.unlockStream.listen((topicName) {
       if (mounted && topicName == 'Fraction') {
         setState(() {});
       }
     });
-    // Check if Fraction is unlocked
     _checkIfUnlocked();
   }
 
   void _checkIfUnlocked() {
-    if (!progressManager.isTopicUnlocked('Fraction')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Complete all lessons in Fundamental Operations first!',
-            style: const TextStyle(fontFamily: 'Poppins-Regular'),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!progressManager.isTopicUnlocked('Fraction') && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Complete all lessons in Fundamental Operations first!',
+              style: const TextStyle(fontFamily: 'Poppins-Regular'),
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
           ),
-          backgroundColor: Colors.orange,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          Navigator.pop(context);
-        }
-      });
-    }
+        );
+      }
+    });
   }
 
-  // Check if lesson is unlocked
   bool _isLessonUnlocked(String lessonTitle) {
     return progressManager.isTopicUnlocked('Fraction');
   }
 
-  // Check if ALL videos in a lesson are completed
   bool _isLessonFullyCompleted(String lessonTitle) {
     try {
       final lesson = _lessons.firstWhere(
@@ -18742,7 +18385,6 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
     }
   }
 
-  // Check if video is unlocked (sequential within lesson)
   bool _isVideoUnlocked(String lessonTitle, int videoIndex) {
     try {
       final lesson = _lessons.firstWhere(
@@ -18761,7 +18403,6 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
     }
   }
 
-  // Get lesson progress
   double _getLessonProgress(String lessonTitle) {
     try {
       final lesson = _lessons.firstWhere(
@@ -18784,7 +18425,6 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
     }
   }
 
-  // Get completed count
   int _getCompletedCount(String lessonTitle) {
     try {
       final lesson = _lessons.firstWhere(
@@ -18811,22 +18451,7 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
     });
   }
 
-  void _navigateToVideo(String lessonTitle, Map<String, dynamic> subtopic, bool isUnlocked) {
-    if (!isUnlocked) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Complete the previous video first!',
-            style: const TextStyle(fontFamily: 'Poppins-Regular'),
-          ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-    
-    // Build learning objectives text
+  void _navigateToVideo(String lessonTitle, Map<String, dynamic> subtopic) {
     String learningObjectives = (subtopic['learningObjectives'] as List).join('\n• ');
     
     Navigator.push(
@@ -18841,13 +18466,10 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
       ),
     ).then((_) {
       setState(() {});
-      
-      // Check if Fraction topic is now fully completed
       _checkFractionCompletion();
     });
   }
 
-  // Navigate to comprehensive exercise
   void _navigateToComprehensiveExercise() {
     Navigator.push(
       context,
@@ -18860,16 +18482,29 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
     });
   }
 
-  // Check if Fraction topic is fully completed
   void _checkFractionCompletion() {
-    bool fractionCompleted = progressManager.isLessonCompleted('Fraction');
+    bool fractionCompleted = _isLessonFullyCompleted('Fraction');
     
     if (fractionCompleted) {
-      // Mark Fraction topic as completed
-      progressManager.markTopicCompleted('Fraction');
+      if (!progressManager.isTopicCompleted('Fraction')) {
+        progressManager.markTopicCompleted('Fraction');
+      }
       
-      // Unlock next topic (Decimal Numbers)
-      progressManager.unlockTopic('Decimal Numbers');
+      if (!progressManager.isTopicUnlocked('Decimal Numbers')) {
+        progressManager.unlockTopic('Decimal Numbers');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '🔓 Decimal Numbers is now unlocked!',
+              style: const TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -18902,7 +18537,6 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -18938,40 +18572,12 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                       color: isUnlocked ? Colors.black54 : Colors.grey.shade600,
                     ),
                   ),
-                  if (!isUnlocked)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: Colors.orange.shade300),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.lock, color: Colors.orange.shade700, size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              'LOCKED',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.orange.shade700,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
             
             const SizedBox(height: 20),
 
-            // ============ FIXED: Show exercise button if lesson is completed ============
             if (isLessonCompleted)
               Container(
                 margin: const EdgeInsets.only(bottom: 20),
@@ -19026,11 +18632,10 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                 ),
               ),
 
-            // Lessons List
             ..._lessons.map((lesson) {
-              final isLessonUnlocked = _isLessonUnlocked(lesson['title'] as String);
-              final isLessonCompleted = progressManager.isLessonCompleted(lesson['title'] as String);
-              final isFullyCompleted = _isLessonFullyCompleted(lesson['title'] as String);
+              final isLessonUnlocked = _isLessonUnlocked(lesson['title']);
+              final isLessonCompleted = progressManager.isLessonCompleted(lesson['title']);
+              final isFullyCompleted = _isLessonFullyCompleted(lesson['title']);
               
               return _buildDropdownLesson(lesson, isLessonUnlocked, isLessonCompleted, isFullyCompleted);
             }).toList(),
@@ -19043,9 +18648,8 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
   }
 
   Widget _buildDropdownLesson(Map<String, dynamic> lesson, bool isLessonUnlocked, bool isLessonCompleted, bool isFullyCompleted) {
-    final isExpanded = _expandedLessons[lesson['id'] as String] ?? false;
+    final isExpanded = _expandedLessons[lesson['id']] ?? false;
     final subtopics = lesson['subtopics'] as List;
-    final lessonTitle = lesson['title'] as String;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -19053,17 +18657,16 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isLessonCompleted ? Colors.green : (isLessonUnlocked ? lesson['color'] as Color : Colors.grey.shade400),
+          color: isLessonCompleted ? Colors.green : (isLessonUnlocked ? lesson['color'] : Colors.grey.shade400),
           width: 2,
         ),
       ),
       child: Column(
         children: [
-          // Lesson Header
           Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: isLessonUnlocked ? () => _toggleLesson(lesson['id'] as String) : null,
+              onTap: isLessonUnlocked ? () => _toggleLesson(lesson['id']) : null,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(10),
                 topRight: Radius.circular(10),
@@ -19076,7 +18679,7 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: isLessonCompleted ? Colors.green.withOpacity(0.2) : (isLessonUnlocked ? lesson['color'] as Color : Colors.grey.shade200),
+                        color: isLessonCompleted ? Colors.green.withOpacity(0.2) : (isLessonUnlocked ? lesson['color'] : Colors.grey.shade200),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isLessonCompleted ? Colors.green : (isLessonUnlocked ? Colors.black : Colors.grey.shade400),
@@ -19086,7 +18689,7 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                       child: isLessonCompleted
                           ? const Icon(Icons.check_circle, color: Colors.green, size: 30)
                           : Icon(
-                              isLessonUnlocked ? lesson['icon'] as IconData : Icons.lock,
+                              isLessonUnlocked ? lesson['icon'] : Icons.lock,
                               color: isLessonUnlocked ? Colors.black : Colors.grey.shade600,
                               size: 24,
                             ),
@@ -19098,7 +18701,7 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            lessonTitle,
+                            lesson['title'],
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -19116,7 +18719,6 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                             ),
                           ),
                           
-                          // ============ FIXED: Show Exercise Available when all videos are done ============
                           if (isFullyCompleted && !isLessonCompleted)
                             Container(
                               margin: const EdgeInsets.only(top: 4),
@@ -19157,11 +18759,11 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                                 children: [
                                   Icon(Icons.lock, size: 10, color: Colors.orange.shade700),
                                   const SizedBox(width: 2),
-                                  const Text(
+                                  Text(
                                     'Complete Fundamental Operations first',
                                     style: TextStyle(
                                       fontSize: 9,
-                                      color: Colors.orange,
+                                      color: Colors.orange.shade700,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -19182,11 +18784,11 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                                 children: [
                                   Icon(Icons.check_circle, size: 10, color: Colors.green.shade700),
                                   const SizedBox(width: 2),
-                                  const Text(
+                                  Text(
                                     'Completed',
                                     style: TextStyle(
                                       fontSize: 9,
-                                      color: Colors.green,
+                                      color: Colors.green.shade700,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -19216,95 +18818,92 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
               ),
             ),
           ),
-            // Expanded Subtopics List
-            if (isExpanded && isLessonUnlocked)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
-                  border: Border(top: BorderSide(color: lesson['color'] as Color, width: 1)),
+
+          if (isExpanded && isLessonUnlocked)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(10),
+                  bottomRight: Radius.circular(10),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lesson['description'] as String,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontFamily: 'Poppins-Regular',
-                        color: Colors.grey[700],
-                      ),
+                border: Border(top: BorderSide(color: lesson['color'], width: 1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    lesson['description'],
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontFamily: 'Poppins-Regular',
+                      color: Colors.grey[700],
                     ),
-                    const SizedBox(height: 15),
-                    
-                    // Progress bar
-                    LinearProgressIndicator(
-                      value: _getLessonProgress(lessonTitle),
-                      backgroundColor: Colors.grey[300],
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                  ),
+                  const SizedBox(height: 15),
+                  
+                  LinearProgressIndicator(
+                    value: _getLessonProgress(lesson['title']),
+                    backgroundColor: Colors.grey[300],
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${_getCompletedCount(lesson['title'])}/${subtopics.length} videos completed',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${_getCompletedCount(lessonTitle)}/${subtopics.length} videos completed',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
+                  ),
+                  
+                  const SizedBox(height: 15),
+                  
+                  ...List.generate(subtopics.length, (index) {
+                    final subtopic = subtopics[index];
+                    final isVideoUnlocked = _isVideoUnlocked(lesson['title'], index);
+                    final isVideoCompleted = progressManager.isSubtopicCompleted(lesson['title'], subtopic['title']);
                     
-                    const SizedBox(height: 15),
-                    
-                    // Subtopic list
-                    ...List.generate(subtopics.length, (index) {
-                      final subtopic = subtopics[index] as Map<String, dynamic>;
-                      final isVideoUnlocked = _isVideoUnlocked(lessonTitle, index);
-                      final isVideoCompleted = progressManager.isSubtopicCompleted(lessonTitle, subtopic['title'] as String);
-                      
-                      return _buildSubtopicItem(
-                        lessonTitle: lessonTitle,
-                        subtopic: subtopic,
-                        index: index,
-                        isUnlocked: isVideoUnlocked,
-                        isCompleted: isVideoCompleted,
-                      );
-                    }),
-                    
-                    // ============ FIXED: Show exercise button at bottom when all videos are done ============
-                    if (isFullyCompleted && !isLessonCompleted)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
+                    return _buildSubtopicItem(
+                      lessonTitle: lesson['title'],
+                      subtopic: subtopic,
+                      index: index,
+                      isUnlocked: isVideoUnlocked,
+                      isCompleted: isVideoCompleted,
+                    );
+                  }),
+                  
+                  if (isFullyCompleted && !isLessonCompleted)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            onPressed: _navigateToComprehensiveExercise,
-                            child: const Text(
-                              'Take Comprehensive Lesson Exercise',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          ),
+                          onPressed: _navigateToComprehensiveExercise,
+                          child: const Text(
+                            'Take Comprehensive Lesson Exercise',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-          ],
-        ),
-      );
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _buildSubtopicItem({
@@ -19329,7 +18928,7 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
         child: InkWell(
           onTap: isUnlocked ? () {
             if (isUnlocked) {
-              _navigateToVideo(lessonTitle, subtopic, isUnlocked);
+              _navigateToVideo(lessonTitle, subtopic);
             }
           } : null,
           borderRadius: BorderRadius.circular(10),
@@ -19340,7 +18939,6 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
               children: [
                 Row(
                   children: [
-                    // Number indicator
                     Container(
                       width: 28,
                       height: 28,
@@ -19366,13 +18964,12 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                     ),
                     const SizedBox(width: 12),
 
-                    // Video Info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            subtopic['title'] as String,
+                            subtopic['title'],
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -19386,7 +18983,7 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                               const Icon(Icons.access_time, size: 12, color: Colors.grey),
                               const SizedBox(width: 4),
                               Text(
-                                subtopic['duration'] as String,
+                                subtopic['duration'],
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontFamily: 'Poppins-Regular',
@@ -19407,11 +19004,11 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                                     children: [
                                       Icon(Icons.lock, size: 10, color: Colors.orange.shade700),
                                       const SizedBox(width: 2),
-                                      const Text(
+                                      Text(
                                         'Locked',
                                         style: TextStyle(
                                           fontSize: 9,
-                                          color: Colors.orange,
+                                          color: Colors.orange.shade700,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -19433,11 +19030,11 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                                     children: [
                                       Icon(Icons.check_circle, size: 10, color: Colors.green.shade700),
                                       const SizedBox(width: 2),
-                                      const Text(
+                                      Text(
                                         'Done',
                                         style: TextStyle(
                                           fontSize: 9,
-                                          color: Colors.green,
+                                          color: Colors.green.shade700,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -19451,7 +19048,6 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                       ),
                     ),
 
-                    // Play/Lock button
                     Container(
                       width: 32,
                       height: 32,
@@ -19472,7 +19068,6 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                   ],
                 ),
                 
-                // Learning Objectives
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -19499,7 +19094,7 @@ class _FractionLessonsScreenState extends State<FractionLessonsScreen> {
                             ),
                             Expanded(
                               child: Text(
-                                objective as String,
+                                objective,
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontFamily: 'Poppins-Regular',
