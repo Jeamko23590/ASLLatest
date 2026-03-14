@@ -271,6 +271,15 @@ class _DashboardScreenState extends State<DashboardScreen>
   final Color peach = const Color(0xFFFFE5B4);          // Peach ng hair/face
   final Color lavender = const Color(0xFFE0D7FF);       // Light lavender
 
+  // DARKER VERSIONS OF THE COLORS FOR BORDERS
+  Color getDarkerColor(Color color) {
+    if (color == mintGreen) return const Color(0xFF6BAF8C); // Darker mint green
+    if (color == lightPink) return const Color(0xFFE6A8A8); // Darker pink
+    if (color == softBlue) return const Color(0xFF7FA9C9);  // Darker blue
+    if (color == lavender) return const Color(0xFFB19CD9);  // Darker lavender
+    return color.withOpacity(0.8); // Fallback
+  }
+
   List<Map<String, dynamic>> _getStories(BuildContext context) {
     return [
       {
@@ -774,7 +783,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                   ),
 
-                  // APAT NA FEATURES BOXES - KAKULAY NG AVATAR
+                  // APAT NA FEATURES BOXES - MAY DARKER BORDERS NA
                   Padding(
                     padding: EdgeInsets.symmetric(
                       horizontal: isSmallScreen ? 20 : screenWidth * 0.05,
@@ -784,7 +793,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         // First Row - 2 boxes (Topics & Progress)
                         Row(
                           children: [
-                            // Topics Box
+                            // Topics Box (Mint Green with Darker Border)
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
@@ -800,7 +809,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   decoration: BoxDecoration(
                                     color: mintGreen,
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.black, width: 2),
+                                    border: Border.all(
+                                      color: getDarkerColor(mintGreen), // Darker mint green border
+                                      width: 3,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.25),
@@ -842,7 +854,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               ),
                             ),
 
-                            // Progress Box
+                            // Progress Box (Light Pink with Darker Border)
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
@@ -858,7 +870,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   decoration: BoxDecoration(
                                     color: lightPink,
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.black, width: 2),
+                                    border: Border.all(
+                                      color: getDarkerColor(lightPink), // Darker pink border
+                                      width: 3,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.25),
@@ -906,7 +921,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         // Second Row - 2 boxes (Sign Dictionary & Sign Language Avatar)
                         Row(
                           children: [
-                            // Sign Dictionary Box
+                            // Sign Dictionary Box (Soft Blue with Darker Border)
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
@@ -922,7 +937,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   decoration: BoxDecoration(
                                     color: softBlue,
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.black, width: 2),
+                                    border: Border.all(
+                                      color: getDarkerColor(softBlue), // Darker blue border
+                                      width: 3,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.25),
@@ -964,7 +982,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               ),
                             ),
 
-                            // Sign Language Avatar Box
+                            // Sign Language Avatar Box (Lavender with Darker Border)
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
@@ -980,7 +998,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   decoration: BoxDecoration(
                                     color: lavender,
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.black, width: 2),
+                                    border: Border.all(
+                                      color: getDarkerColor(lavender), // Darker lavender border
+                                      width: 3,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.25),
@@ -1137,7 +1158,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(height: 12),
               
               _buildDrawerMenuItem(
-                title: 'Settings',
+                title: 'Terms and Policies',
                 icon: Icons.settings,
                 onTap: () {
                   _toggleProfileDrawer();
@@ -1227,8 +1248,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     switch (title) {
       case 'Profile':
         return mintGreen;      // Mint green
+      case 'Terms and Policies':
       case 'Settings':
-        return lightPink;      // Light pink
+        return lightPink;      // Light pink (same as Progress box)
       case 'Help':
         return softBlue;       // Soft blue
       case 'About':
@@ -1388,6 +1410,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 }
+
 
 // ============ EXERCISE SCREEN ============
 class ExerciseScreen extends StatefulWidget {
@@ -2867,7 +2890,7 @@ class _FrontPageScreenState extends State<FrontPageScreen>
   // Function to launch Senyamatikard website
   // Update the IP address below to match your computer's WiFi IP
   Future<void> _launchSenyamatikard() async {
-    final Uri url = Uri.parse('http://192.168.1.59:5173/');
+    final Uri url = Uri.parse('http://localhost:5173/');
     
     try {
       if (await canLaunchUrl(url)) {
@@ -6508,7 +6531,7 @@ class SettingsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Settings',
+          'Account Policy',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -6559,12 +6582,21 @@ class SettingsScreen extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.black, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 8,
+                spreadRadius: 0.5,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -11139,7 +11171,7 @@ class _NumberValuesLessonsScreenState extends State<NumberValuesLessonsScreen> {
   }
 }
 
-// ============ WHOLE NUMBERS EXERCISE - FOCUSED ON COUNTING ONLY ============
+// ============ FIXED EXERCISE SCREEN - Whole Numbers Exercise ============
 class WholeNumbersExerciseScreen extends StatefulWidget {
   final String lessonName;
   final String language;
@@ -11166,15 +11198,18 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
   List<String> _dragTargets = [];
   bool _dragItemsInitialized = false;
 
+  // For matching type selections
+  Map<int, int> _matchingSelections = {}; // leftIndex -> rightIndex
+
   final List<Map<String, dynamic>> _questions = [
-    // ===== MULTIPLE CHOICE (3 items) - COUNTING OBJECTS UP TO 20 =====
+    // ===== MULTIPLE CHOICE (3 items) =====
     {
       'id': 1,
       'type': 'multiple_choice',
       'question': 'How many apples are there?',
       'objects': ['🍎', '🍎', '🍎', '🍎', '🍎', '🍎', '🍎', '🍎'],
       'objectCount': 8,
-      'correctAnswer': 2,
+      'correctAnswer': 3, // Index 3 corresponds to 8
       'options': [5, 6, 7, 8, 9],
       'explanation': 'There are 8 apples. Count them: 1, 2, 3, 4, 5, 6, 7, 8.',
     },
@@ -11184,7 +11219,7 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
       'question': 'Count the stars. How many are there?',
       'objects': ['⭐', '⭐', '⭐', '⭐', '⭐', '⭐', '⭐', '⭐', '⭐', '⭐', '⭐', '⭐'],
       'objectCount': 12,
-      'correctAnswer': 1,
+      'correctAnswer': 2, // Index 2 corresponds to 12
       'options': [10, 11, 12, 13, 14],
       'explanation': 'There are 12 stars. Counting by ones: 12 stars.',
     },
@@ -11192,7 +11227,7 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
       'id': 3,
       'type': 'multiple_choice',
       'question': 'What number comes after 15 when counting by ones?',
-      'correctAnswer': 3,
+      'correctAnswer': 2, // Index 2 corresponds to 16
       'options': [14, 15, 16, 17, 18],
       'explanation': 'When counting by ones: 14, 15, 16, 17, 18. After 15 comes 16.',
     },
@@ -11223,34 +11258,34 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
       'explanation': 'Counting by 10s: 10, 20, 30, 40, 50.',
     },
 
-    // ===== MATCHING TYPE (3 items) =====
-    {
-      'id': 7,
-      'type': 'matching',
-      'question': 'Match each number with the correct way to count to it:',
-      'leftItems': ['25', '40', '55', '100'],
-      'rightItems': ['Count by 5s', 'Count by 10s', 'Count by 5s', 'Count by 20s'],
-      'correctMatches': [0, 1, 0, 3], // 0-index: 25->0(5s), 40->1(10s), 55->0(5s), 100->3(20s)
-      'explanation': '25 can be reached by 5s (5,10,15,20,25). 40 by 10s. 55 by 5s. 100 by 20s.',
-    },
-    {
-      'id': 8,
-      'type': 'matching',
-      'question': 'Match each group with the correct total count:',
-      'leftItems': ['5 groups of 10', '10 groups of 5', '4 groups of 20', '20 groups of 5'],
-      'rightItems': ['50', '50', '80', '100'],
-      'correctMatches': [0, 1, 2, 3],
-      'explanation': '5×10=50, 10×5=50, 4×20=80, 20×5=100',
-    },
-    {
-      'id': 9,
-      'type': 'matching',
-      'question': 'Match each number with how it is counted (by ones, fives, tens, or twenties):',
-      'leftItems': ['18', '35', '70', '80'],
-      'rightItems': ['by ones', 'by fives', 'by tens', 'by twenties'],
-      'correctMatches': [0, 1, 2, 3],
-      'explanation': '18 is counted by ones, 35 by fives, 70 by tens, 80 by twenties',
-    },
+    // ===== MATCHING TYPE (3 items) - LAHAT SIMPLE AT MADALI =====
+{
+  'id': 7,
+  'type': 'matching',
+  'question': 'Match each number with the correct counting pattern:',
+  'leftItems': ['25', '40', '30', '20'],
+  'rightItems': ['5, 10, 15, 20, 25', '10, 20, 30, 40', '5, 10, 15, 20, 25, 30', '5, 10, 15, 20'],
+  'correctMatches': [0, 1, 2, 3], 
+  'explanation': '25 = 5,10,15,20,25 | 40 = 10,20,30,40 | 30 = 5,10,15,20,25,30 | 20 = 5,10,15,20',
+},
+{
+  'id': 8,
+  'type': 'matching',
+  'question': 'Match each number with the correct counting pattern:',
+  'leftItems': ['50', '100', '75', '60'],
+  'rightItems': ['10, 20, 30, 40, 50', '20, 40, 60, 80, 100', '5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75', '10, 20, 30, 40, 50, 60'],
+  'correctMatches': [0, 1, 2, 3], 
+  'explanation': '50 = 10,20,30,40,50 | 100 = 20,40,60,80,100 | 75 = count by 5s to 75 | 60 = 10,20,30,40,50,60',
+},
+{
+  'id': 9,
+  'type': 'matching',
+  'question': 'Match each number with the correct counting pattern:',
+  'leftItems': ['15', '45', '90', '80'],
+  'rightItems': ['5, 10, 15', '5, 10, 15, 20, 25, 30, 35, 40, 45', '10, 20, 30, 40, 50, 60, 70, 80, 90', '20, 40, 60, 80'],
+  'correctMatches': [0, 1, 2, 3],
+  'explanation': '15 = 5,10,15 | 45 = count by 5s to 45 | 90 = count by 10s to 90 | 80 = 20,40,60,80',
+},
 
     // ===== DRAG AND DROP (3 items) =====
     {
@@ -11284,7 +11319,7 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
       'explanation': 'Counting by 20s: 20, 40, 60, 80, 100',
     },
 
-    // ===== OTHER WAYS (3 items) - True/False, Circle the answer, Write the number =====
+    // ===== OTHER WAYS (3 items) =====
     {
       'id': 13,
       'type': 'true_false',
@@ -11295,10 +11330,10 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
     {
       'id': 14,
       'type': 'circle_answer',
-      'question': 'Circle the number that comes next when counting by 10s: 20, 30, 40, ___',
+      'question': 'Choose the next number when counting by 10s: 20, 30, 40, ___',
       'options': ['45', '50', '55', '60'],
       'correctAnswer': 1, // 50
-      'explanation': 'Counting by 10s: 20, 30, 40, 50. 50 comes next.',
+      'explanation': 'Counting by 10s: 20, 30, 40, 50. The next number is 50.',
     },
     {
       'id': 15,
@@ -11312,7 +11347,13 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
   @override
   void initState() {
     super.initState();
+    _initQuestion();
+  }
+
+  void _initQuestion() {
+    _dragItemsInitialized = false;
     _initDragItems();
+    _initMatchingSelections();
   }
 
   void _initDragItems() {
@@ -11323,6 +11364,27 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
       _dragTargets = List.filled((question['correctAnswer'] as List).length, '');
       _dragItemsInitialized = true;
     }
+  }
+
+  void _initMatchingSelections() {
+    final question = _questions[_currentQuestion];
+    if (question['type'] == 'matching') {
+      _matchingSelections = {};
+    }
+  }
+
+  void _updateMatchingSelection(int leftIndex, int rightIndex) {
+    setState(() {
+      _matchingSelections[leftIndex] = rightIndex;
+    });
+  }
+
+  bool _isMatchingComplete() {
+    final question = _questions[_currentQuestion];
+    if (question['type'] != 'matching') return true;
+    
+    final leftItems = question['leftItems'] as List;
+    return _matchingSelections.length == leftItems.length;
   }
 
   void _answerQuestion(dynamic answer) {
@@ -11397,7 +11459,7 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
     if (_currentQuestion < _questions.length - 1) {
       setState(() {
         _currentQuestion++;
-        _initDragItems();
+        _initQuestion();
       });
     }
   }
@@ -11406,7 +11468,7 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
     if (_currentQuestion > 0) {
       setState(() {
         _currentQuestion--;
-        _initDragItems();
+        _initQuestion();
       });
     }
   }
@@ -11418,34 +11480,8 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
       _exerciseCompleted = false;
       _userAnswers = List.filled(_questions.length, null);
       _answeredQuestions = List.filled(_questions.length, false);
-      _initDragItems();
+      _initQuestion();
     });
-  }
-
-  String _getQuestionTypeTitle(String type) {
-    switch (type) {
-      case 'multiple_choice': return 'MULTIPLE CHOICE';
-      case 'fill_blank': return 'FILL IN THE BLANK';
-      case 'matching': return 'MATCHING TYPE';
-      case 'drag_drop': return 'DRAG AND DROP';
-      case 'true_false': return 'TRUE OR FALSE';
-      case 'circle_answer': return 'CIRCLE THE ANSWER';
-      case 'write_number': return 'WRITE THE NUMBER';
-      default: return '';
-    }
-  }
-
-  Color _getTypeColor(String type) {
-    switch (type) {
-      case 'multiple_choice': return Colors.blue;
-      case 'fill_blank': return Colors.green;
-      case 'matching': return Colors.purple;
-      case 'drag_drop': return Colors.orange;
-      case 'true_false': return Colors.red;
-      case 'circle_answer': return Colors.teal;
-      case 'write_number': return Colors.amber;
-      default: return Colors.grey;
-    }
   }
 
   @override
@@ -11681,6 +11717,32 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
     return false;
   }
 
+  String _getQuestionTypeTitle(String type) {
+    switch (type) {
+      case 'multiple_choice': return 'MULTIPLE CHOICE';
+      case 'fill_blank': return 'FILL IN THE BLANK';
+      case 'matching': return 'MATCHING TYPE';
+      case 'drag_drop': return 'DRAG AND DROP';
+      case 'true_false': return 'TRUE OR FALSE';
+      case 'circle_answer': return 'CIRCLE THE ANSWER';
+      case 'write_number': return 'WRITE THE NUMBER';
+      default: return '';
+    }
+  }
+
+  Color _getTypeColor(String type) {
+    switch (type) {
+      case 'multiple_choice': return Colors.blue;
+      case 'fill_blank': return Colors.green;
+      case 'matching': return Colors.purple;
+      case 'drag_drop': return Colors.orange;
+      case 'true_false': return Colors.red;
+      case 'circle_answer': return Colors.teal;
+      case 'write_number': return Colors.amber;
+      default: return Colors.grey;
+    }
+  }
+
   // ===== MULTIPLE CHOICE BUILDER =====
   Widget _buildMultipleChoice(Map<String, dynamic> question, double screenWidth) {
     return Column(
@@ -11848,12 +11910,11 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
     );
   }
 
-  // ===== MATCHING TYPE BUILDER =====
+  // ===== FIXED MATCHING TYPE BUILDER - EASY TO UNDERSTAND =====
   Widget _buildMatching(Map<String, dynamic> question, double screenWidth) {
     final leftItems = question['leftItems'] as List;
     final rightItems = question['rightItems'] as List;
-    Map<int, int> localMatches = {};
-
+    
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -11874,7 +11935,7 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text(
-                    'Item',
+                    'Number / Group',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
@@ -11900,7 +11961,7 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
           
           const SizedBox(height: 12),
           
-          // Matching rows
+          // Matching rows - each with its own dropdown
           ...List.generate(leftItems.length, (index) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -11935,7 +11996,7 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
                         border: Border.all(color: Colors.purple[300]!),
                       ),
                       child: DropdownButton<int>(
-                        value: localMatches[index],
+                        value: _matchingSelections[index],
                         hint: const Text('Select', style: TextStyle(fontSize: 13)),
                         isExpanded: true,
                         underline: const SizedBox(),
@@ -11949,12 +12010,17 @@ class _WholeNumbersExerciseScreenState extends State<WholeNumbersExerciseScreen>
                         onChanged: _answeredQuestions[_currentQuestion] 
                             ? null 
                             : (value) {
-                                setState(() {
-                                  localMatches[index] = value!;
-                                  if (localMatches.length == leftItems.length) {
-                                    _answerQuestion(localMatches);
-                                  }
-                                });
+                                _updateMatchingSelection(index, value!);
+                                
+                                // Check if all matches are selected
+                                if (_matchingSelections.length == leftItems.length) {
+                                  // Submit after a short delay to ensure UI updates
+                                  Future.delayed(const Duration(milliseconds: 100), () {
+                                    if (mounted && !_answeredQuestions[_currentQuestion]) {
+                                      _answerQuestion(Map<int, int>.from(_matchingSelections));
+                                    }
+                                  });
+                                }
                               },
                       ),
                     ),
