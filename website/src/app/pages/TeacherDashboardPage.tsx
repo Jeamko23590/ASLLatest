@@ -1,4 +1,5 @@
 import React from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Users, BookOpen, CheckCircle, Target, Clock, TrendingUp, Award, AlertCircle, Activity, Sparkles, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useDashboardStats, useStudents, useLessons } from '@/app/hooks/useData';
@@ -7,14 +8,17 @@ import { Badge } from '@/app/components/ui/badge';
 import { AIInsightsAccordion } from '@/app/components/AIInsightsAccordion';
 import apiService from '@/app/services/apiService';
 
-interface TeacherDashboardPageProps {
-  setPageContext?: (context: any) => void;
-}
-
-export function TeacherDashboardPage({ setPageContext }: TeacherDashboardPageProps) {
+export function TeacherDashboardPage() {
+  const { setPageContext } = useOutletContext<{ setPageContext: (context: any) => void }>();
   // Get teacher ID from localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const teacherId = user.id;
+
+  // Debug log to verify component is mounting
+  React.useEffect(() => {
+    console.log('📊 TeacherDashboardPage mounted');
+    return () => console.log('📊 TeacherDashboardPage unmounted');
+  }, []);
 
   const stats = useDashboardStats(teacherId);
   const { students } = useStudents(teacherId);
@@ -22,12 +26,10 @@ export function TeacherDashboardPage({ setPageContext }: TeacherDashboardPagePro
 
   // State for chart data from API
   const [chartData, setChartData] = React.useState<any>(null);
-  const [chartLoading, setChartLoading] = React.useState(false);
 
   // Fetch chart data from API
   React.useEffect(() => {
     if (teacherId) {
-      setChartLoading(true);
       apiService.getTeacherCharts(teacherId)
         .then(response => {
           if (response.success && response.data) {
@@ -37,8 +39,7 @@ export function TeacherDashboardPage({ setPageContext }: TeacherDashboardPagePro
         })
         .catch(err => {
           console.warn('⚠️ Failed to load chart data, using fallback:', err);
-        })
-        .finally(() => setChartLoading(false));
+        });
     }
   }, [teacherId]);
 
@@ -65,7 +66,7 @@ export function TeacherDashboardPage({ setPageContext }: TeacherDashboardPagePro
       return chartData.lessonEngagement;
     }
     // Fallback - calculate from lessons
-    const categories = [...new Set(lessons.map(l => l.category || 'Other'))];
+    const categories = [...new Set(lessons.map(l => (l as any).category || 'Other'))];
     return categories.map(cat => ({
       category: cat,
       engaged: Math.floor(students.length * 0.7),
@@ -143,7 +144,8 @@ export function TeacherDashboardPage({ setPageContext }: TeacherDashboardPagePro
         lessonsCount: lessons.length,
       });
     }
-  }, [stats, students, lessons, setPageContext, assessmentsCompleted, avgStudyTime, activeToday, lessonCompletionTrend, engagementOverview, performanceDistribution, recentActivity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats.totalStudents, stats.activeStudents, stats.totalLessons, stats.overallCompletionRate, students.length, lessons.length, assessmentsCompleted, avgStudyTime, activeToday]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -158,14 +160,14 @@ export function TeacherDashboardPage({ setPageContext }: TeacherDashboardPagePro
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-      {/* Page Header with Welcome Message */}
+      {/* Enhanced Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-font text-4xl text-[var(--primary)] mb-2 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[var(--primary)] shadow-md">
               <Sparkles className="h-8 w-8 text-[var(--accent)]" />
             </div>
-            Welcome Back, Teacher!
+            Welcome Back, Teacher! [DASHBOARD PAGE]
           </h1>
           <p className="text-muted-foreground text-lg">Here's what's happening with your students today</p>
         </div>
@@ -390,7 +392,7 @@ export function TeacherDashboardPage({ setPageContext }: TeacherDashboardPagePro
                       dataKey="value"
                       paddingAngle={2}
                     >
-                      {performanceDistribution.map((entry, index) => (
+                      {performanceDistribution.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -399,7 +401,7 @@ export function TeacherDashboardPage({ setPageContext }: TeacherDashboardPagePro
                 </ResponsiveContainer>
               </div>
               <div className="w-full lg:w-1/2 space-y-3">
-                {performanceDistribution.map((item, index) => (
+                {performanceDistribution.map((item: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--accent)]/10 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }} />
@@ -426,7 +428,7 @@ export function TeacherDashboardPage({ setPageContext }: TeacherDashboardPagePro
           </CardHeader>
           <CardContent className="pt-4">
             <div className="space-y-2">
-              {recentActivity.map((activity, index) => (
+              {recentActivity.map((activity: any, index: number) => (
                 <div 
                   key={index} 
                   className="flex items-start gap-3 p-3 rounded-lg hover:bg-[var(--accent)]/10 transition-all cursor-pointer border border-transparent hover:border-[var(--accent)]/30"

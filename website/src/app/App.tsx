@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { TeacherSidebar } from '@/app/components/TeacherSidebar';
 import { AdminSidebar } from '@/app/components/AdminSidebar';
 import { TeacherTopBar } from '@/app/components/TeacherTopBar';
@@ -10,6 +10,7 @@ import { TeacherDashboardPage } from '@/app/pages/TeacherDashboardPage';
 import { TeacherStudentsPage } from '@/app/pages/TeacherStudentsPage';
 import { TeacherProgressPage } from '@/app/pages/TeacherProgressPage';
 import { TeacherReportsPage } from '@/app/pages/TeacherReportsPage';
+import { TestPage } from '@/app/pages/TestPage';
 import { AdminOverviewPage } from '@/app/pages/AdminOverviewPage';
 import { AdminAccountsPage } from '@/app/pages/AdminAccountsPage';
 import { AdminClassesPage } from '@/app/pages/AdminClassesPage';
@@ -141,8 +142,9 @@ function LandingPageWrapper() {
 }
 
 // Teacher layout wrapper
-function TeacherLayout({ children }: { children: React.ReactNode }) {
+function TeacherLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuth();
   const [isAIPanelOpen, setIsAIPanelOpen] = React.useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
@@ -154,12 +156,22 @@ function TeacherLayout({ children }: { children: React.ReactNode }) {
   };
 
   const handleViewChange = (view: string) => {
+    console.log('🚀 Navigation triggered to:', view);
     navigate(`/teacher/${view}`);
   };
 
-  // Get active view from current pathname
-  const pathname = window.location.pathname;
-  const activeView = pathname.split('/').pop() || 'dashboard';
+  // Get active view from current pathname - now reactive to location changes
+  const activeView = location.pathname.split('/').pop() || 'dashboard';
+
+  // Debug log
+  React.useEffect(() => {
+    console.log('🔄 Route changed to:', location.pathname, 'Active view:', activeView);
+  }, [location.pathname, activeView]);
+
+  // Reset page context when route changes
+  React.useEffect(() => {
+    setPageContext(null);
+  }, [location.pathname]);
 
   return (
     <div className="h-screen bg-background flex overflow-hidden relative z-10">
@@ -178,8 +190,8 @@ function TeacherLayout({ children }: { children: React.ReactNode }) {
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
         <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            {React.cloneElement(children as React.ReactElement, { setPageContext })}
+          <div className="flex-1 overflow-y-auto" data-outlet-container="teacher">
+            <Outlet context={{ setPageContext }} />
           </div>
           <AIChatPanel
             isOpen={isAIPanelOpen}
@@ -194,8 +206,9 @@ function TeacherLayout({ children }: { children: React.ReactNode }) {
 }
 
 // Admin layout wrapper
-function AdminLayout({ children }: { children: React.ReactNode }) {
+function AdminLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
@@ -208,9 +221,8 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
     navigate(`/admin/${view}`);
   };
 
-  // Get active view from current pathname
-  const pathname = window.location.pathname;
-  const activeView = pathname.split('/').pop() || 'overview';
+  // Get active view from current pathname - now reactive to location changes
+  const activeView = location.pathname.split('/').pop() || 'overview';
 
   return (
     <div className="h-screen bg-background flex overflow-hidden relative z-10">
@@ -233,7 +245,9 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
           </button>
           <h1 className="ml-4 font-bold text-lg text-[var(--primary)]">Admin Panel</h1>
         </div>
-        <div className="flex-1 overflow-y-auto">{children}</div>
+        <div className="flex-1 overflow-y-auto">
+          <Outlet />
+        </div>
       </div>
     </div>
   );
@@ -241,7 +255,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <AuthProvider>
         <DataProvider>
           <Routes>
@@ -249,103 +263,39 @@ export default function App() {
             <Route path="/" element={<LandingPageWrapper />} />
             <Route path="/login" element={<LoginPageWrapper />} />
 
-            {/* Teacher routes */}
+            {/* Teacher routes - nested */}
             <Route
-              path="/teacher/dashboard"
+              path="/teacher"
               element={
                 <ProtectedRoute allowedRoles={['teacher']}>
-                  <TeacherLayout>
-                    <TeacherDashboardPage />
-                  </TeacherLayout>
+                  <TeacherLayout />
                 </ProtectedRoute>
               }
-            />
-            <Route
-              path="/teacher/students"
-              element={
-                <ProtectedRoute allowedRoles={['teacher']}>
-                  <TeacherLayout>
-                    <TeacherStudentsPage />
-                  </TeacherLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/teacher/progress"
-              element={
-                <ProtectedRoute allowedRoles={['teacher']}>
-                  <TeacherLayout>
-                    <TeacherProgressPage />
-                  </TeacherLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/teacher/reports"
-              element={
-                <ProtectedRoute allowedRoles={['teacher']}>
-                  <TeacherLayout>
-                    <TeacherReportsPage />
-                  </TeacherLayout>
-                </ProtectedRoute>
-              }
-            />
+            >
+              <Route path="dashboard" element={<TeacherDashboardPage />} />
+              <Route path="students" element={<TeacherStudentsPage />} />
+              <Route path="test" element={<TestPage />} />
+              <Route path="progress" element={<TeacherProgressPage />} />
+              <Route path="reports" element={<TeacherReportsPage />} />
+              <Route index element={<Navigate to="dashboard" replace />} />
+            </Route>
 
-            {/* Admin routes */}
+            {/* Admin routes - nested */}
             <Route
-              path="/admin/overview"
+              path="/admin"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminLayout>
-                    <AdminOverviewPage />
-                  </AdminLayout>
+                  <AdminLayout />
                 </ProtectedRoute>
               }
-            />
-            <Route
-              path="/admin/accounts"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminLayout>
-                    <AdminAccountsPage />
-                  </AdminLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/classes"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminLayout>
-                    <AdminClassesPage />
-                  </AdminLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/reports"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminLayout>
-                    <AdminReportsPage />
-                  </AdminLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/settings"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminLayout>
-                    <SettingsPage />
-                  </AdminLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Redirect /teacher and /admin to their default pages */}
-            <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
-            <Route path="/admin" element={<Navigate to="/admin/overview" replace />} />
+            >
+              <Route index element={<Navigate to="/admin/overview" replace />} />
+              <Route path="overview" element={<AdminOverviewPage />} />
+              <Route path="accounts" element={<AdminAccountsPage />} />
+              <Route path="classes" element={<AdminClassesPage />} />
+              <Route path="reports" element={<AdminReportsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
 
             {/* Catch all - redirect to landing */}
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -353,6 +303,6 @@ export default function App() {
           <Toaster />
         </DataProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </Router>
   );
 }

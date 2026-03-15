@@ -1,44 +1,36 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { User, Award, Clock, TrendingUp, BookOpen, Search, Star, Target, Users as UsersIcon, ChevronDown, ChevronRight, CheckCircle, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { User, Award, Clock, TrendingUp, Search, Star, Users as UsersIcon, ChevronDown, ChevronRight, CheckCircle, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { useStudents, useAssessmentScores, useLessons } from '@/app/hooks/useData';
 import { mockAssessments, mockProgress } from '@/app/hooks/mockData';
 import { Badge } from '@/app/components/ui/badge';
 import apiService from '@/app/services/apiService';
 
-interface StudentProgress {
-  studentId: string;
-  lessonId: string;
-  subtopicId?: string;
-  completed: boolean;
-  progress: number;
-  score?: number;
-}
-
-interface TeacherStudentsPageProps {
-  setPageContext?: (context: any) => void;
-}
-
-export function TeacherStudentsPage({ setPageContext }: TeacherStudentsPageProps) {
+export function TeacherStudentsPage() {
+  const { setPageContext } = useOutletContext<{ setPageContext: (context: any) => void }>();
   // Get teacher ID from localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const teacherId = user.id;
 
+  // Debug log to verify component is mounting
+  React.useEffect(() => {
+    console.log('🎓 TeacherStudentsPage mounted');
+    return () => console.log('🎓 TeacherStudentsPage unmounted');
+  }, []);
+
   const { students } = useStudents(teacherId);
   const { scores } = useAssessmentScores();
   const { lessons } = useLessons();
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'firstName' | 'lastName' | 'completionRate' | 'avgScore'>('firstName');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [studentProgressData, setStudentProgressData] = useState<any>({});
-  const [loading, setLoading] = useState(false);
 
   // Fetch detailed progress for each student when they expand
   useEffect(() => {
     if (expandedStudent && teacherId && !studentProgressData[expandedStudent]) {
-      setLoading(true);
       apiService.getStudentProgress(teacherId, expandedStudent)
         .then(response => {
           if (response.success && response.data) {
@@ -51,17 +43,9 @@ export function TeacherStudentsPage({ setPageContext }: TeacherStudentsPageProps
         })
         .catch(err => {
           console.warn('⚠️ Failed to load student progress:', err);
-        })
-        .finally(() => setLoading(false));
+        });
     }
   }, [expandedStudent, teacherId, studentProgressData]);
-
-  const getProgressColor = (progress: number) => {
-    if (progress >= 85) return '#22c55e';  // Green for excellent
-    if (progress >= 70) return '#D4A017';  // Dark yellow for good
-    if (progress >= 60) return '#FEDA5E';  // Light yellow for fair
-    return '#ef4444';  // Red for needs help
-  };
 
   const getProgressBarColor = (completionRate: number) => {
     if (completionRate === 100) return '#22c55e';  // Green for fully completed
@@ -279,7 +263,7 @@ export function TeacherStudentsPage({ setPageContext }: TeacherStudentsPageProps
             <div className="p-2 rounded-lg bg-[var(--primary)] shadow-md">
               <UsersIcon className="h-8 w-8 text-[var(--accent)]" />
             </div>
-            Students
+            Students [STUDENTS PAGE]
           </h1>
           <p className="text-muted-foreground text-lg">Monitor individual student progress and assessment scores</p>
         </div>

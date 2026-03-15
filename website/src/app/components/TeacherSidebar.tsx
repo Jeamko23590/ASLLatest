@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { BarChart3, TrendingUp, FileText, LogOut, LayoutDashboard, Users } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
 
@@ -11,15 +12,17 @@ interface TeacherSidebarProps {
 }
 
 const navItems = [
-  { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
-  { id: 'students', icon: Users, label: 'Students' },
-  { id: 'progress', icon: TrendingUp, label: 'Progress' },
-  { id: 'reports', icon: FileText, label: 'Reports' },
+  { id: 'dashboard', icon: BarChart3, label: 'Dashboard', path: '/teacher/dashboard' },
+  { id: 'students', icon: Users, label: 'Students', path: '/teacher/students' },
+  { id: 'progress', icon: TrendingUp, label: 'Progress', path: '/teacher/progress' },
+  { id: 'reports', icon: FileText, label: 'Reports', path: '/teacher/reports' },
 ];
 
 export function TeacherSidebar({ activeView, onViewChange, onLogout, isOpen = true, onClose }: TeacherSidebarProps) {
+  const location = useLocation();
+  
   const handleNavClick = (id: string) => {
-    onViewChange(id);
+    console.log('👆 Sidebar clicked:', id);
     // Close mobile menu when a nav item is clicked
     if (onClose) {
       onClose();
@@ -63,36 +66,40 @@ export function TeacherSidebar({ activeView, onViewChange, onLogout, isOpen = tr
 
         {/* Navigation Items */}
         <nav className="flex flex-col space-y-2 md:space-y-4 mb-auto px-4 md:px-0 md:items-center">
-          {navItems.map((item) => (
-            <TooltipProvider key={item.id} delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => handleNavClick(item.id)}
-                    className={`
-                      w-full md:w-12 h-12 rounded-xl
-                      flex items-center md:justify-center
-                      px-4 md:px-0
-                      gap-3 md:gap-0
-                      transition-all
-                      ${
-                        activeView === item.id
-                          ? 'bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] shadow-lg md:scale-110'
-                          : 'text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:scale-105'
-                      }
-                    `}
-                    aria-label={item.label}
-                  >
-                    <item.icon className="h-6 w-6 flex-shrink-0" />
-                    <span className="md:hidden font-medium">{item.label}</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="hidden md:block bg-[var(--card)] text-[var(--card-foreground)] border-2 border-[var(--border)] shadow-lg">
-                  <p>{item.label}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ))}
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <TooltipProvider key={item.id} delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to={item.path}
+                      onClick={() => handleNavClick(item.id)}
+                      className={`
+                        w-full md:w-12 h-12 rounded-xl
+                        flex items-center md:justify-center
+                        px-4 md:px-0
+                        gap-3 md:gap-0
+                        transition-all
+                        ${
+                          isActive
+                            ? 'bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] shadow-lg md:scale-110'
+                            : 'text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:scale-105'
+                        }
+                      `}
+                      aria-label={item.label}
+                    >
+                      <item.icon className="h-6 w-6 flex-shrink-0" />
+                      <span className="md:hidden font-medium">{item.label}</span>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="hidden md:block bg-[var(--card)] text-[var(--card-foreground)] border-2 border-[var(--border)] shadow-lg">
+                    <p>{item.label}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          })}
         </nav>
 
         {/* Bottom Actions - Logout */}

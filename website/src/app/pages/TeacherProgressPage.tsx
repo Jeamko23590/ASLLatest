@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { ChevronDown, ChevronRight, CheckCircle, BookOpen, Award, Target, Search, AlertCircle } from 'lucide-react';
 import { useLessons, useStudents } from '@/app/hooks/useData';
@@ -14,11 +15,8 @@ interface StudentProgress {
   score?: number;
 }
 
-interface TeacherProgressPageProps {
-  setPageContext?: (context: any) => void;
-}
-
-export function TeacherProgressPage({ setPageContext }: TeacherProgressPageProps) {
+export function TeacherProgressPage() {
+  const { setPageContext } = useOutletContext<{ setPageContext: (context: any) => void }>();
   const { lessons } = useLessons();
   const { students } = useStudents();
   const [expandedLessons, setExpandedLessons] = useState<string[]>([]);

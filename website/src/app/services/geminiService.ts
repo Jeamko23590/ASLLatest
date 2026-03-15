@@ -1,4 +1,4 @@
-const GEMINI_API_KEY = 'AIzaSyArDTyyt70LQ8R2Y8goEJZwdx4nfa9vVr4';
+const GEMINI_API_KEY = 'AIzaSyDOZj3Bf1Cdis0yg_NW47RqHbBOQL2rqe8';
 const GEMINI_MODEL = 'models/gemma-3-27b-it';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 

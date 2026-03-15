@@ -1,21 +1,16 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
 import { useLessons, useStudents, useProgress, useAssessmentScores } from '@/app/hooks/useData';
-import { Download, FileText, Sparkles, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, Search, SlidersHorizontal, ArrowUpDown, ArrowUp, ArrowDown, X, BarChart3, Calendar, BookOpen, Users, Target, Award, Filter } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
+import { Download, FileText, TrendingUp, TrendingDown, BarChart3, Calendar, BookOpen, Users, Target, Award, Filter } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AIInsightsAccordion } from '@/app/components/AIInsightsAccordion';
 import { mockAssessments } from '@/app/hooks/mockData';
 
-interface TeacherReportsPageProps {
-  setPageContext?: (context: any) => void;
-}
-
-export function TeacherReportsPage({ setPageContext }: TeacherReportsPageProps) {
+export function TeacherReportsPage() {
+  const { setPageContext } = useOutletContext<{ setPageContext: (context: any) => void }>();
   const { lessons } = useLessons();
   const { students } = useStudents();
   const { progress } = useProgress();
