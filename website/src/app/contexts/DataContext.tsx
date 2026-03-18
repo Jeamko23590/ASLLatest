@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Teacher, Class, Student, School } from '@/app/hooks/types';
 import apiService from '@/app/services/apiService';
 
@@ -9,8 +9,8 @@ interface DataContextType {
   schools: School[];
   loading: boolean;
   error: string | null;
-  addTeacher: (teacher: Teacher) => Promise<void>;
-  updateTeacher: (id: string, updates: Partial<Teacher>) => Promise<void>;
+  addTeacher: (teacher: Teacher) => Promise<any>;
+  updateTeacher: (id: string, updates: Partial<Teacher>) => Promise<any>;
   deleteTeacher: (id: string) => Promise<void>;
   addClass: (classData: Class) => void;
   updateClass: (id: string, updates: Partial<Class>) => void;
@@ -43,7 +43,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         apiService.getSchools(),
       ]);
 
-      if (teachersRes.success && teachersRes.data) {
+      if (teachersRes.success && teachersRes.data && Array.isArray(teachersRes.data)) {
         // Transform API data to match frontend format
         const transformedTeachers = teachersRes.data.map((t: any) => ({
           id: t.id,
@@ -62,7 +62,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('✅ Loaded teachers from API:', transformedTeachers.length);
       }
 
-      if (classesRes.success && classesRes.data) {
+      if (classesRes.success && classesRes.data && Array.isArray(classesRes.data)) {
         const transformedClasses = classesRes.data.map((c: any) => ({
           id: c.id,
           schoolId: c.school_id,
@@ -76,7 +76,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('✅ Loaded classes from API:', transformedClasses.length);
       }
 
-      if (schoolsRes.success && schoolsRes.data) {
+      if (schoolsRes.success && schoolsRes.data && Array.isArray(schoolsRes.data)) {
         const transformedSchools = schoolsRes.data.map((s: any) => ({
           id: s.id,
           name: s.name,

@@ -111,7 +111,14 @@ router.get('/teacher/:teacherId/pdf', async (req, res) => {
       LEFT JOIN student_progress sp ON s.id = sp.student_id
       LEFT JOIN assessment_scores asc ON s.id = asc.student_id
       WHERE c.teacher_id = ?
-    `).get(teacherId);
+    `).get(teacherId) as { total_students: number; completed_lessons: number; avg_score: number | null } | undefined;
+
+    if (!stats) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to generate report statistics'
+      } as ApiResponse);
+    }
 
     // Create PDF
     const doc = new PDFDocument({ margin: 50 });

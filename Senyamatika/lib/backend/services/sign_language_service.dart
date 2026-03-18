@@ -174,6 +174,29 @@ class SignLanguageService {
     
     debugPrint('🔤 Translating: "$normalizedText"');
     
+    // Check for fraction pattern (e.g., "1/2", "3/4") before other processing
+    final fractionMatch = RegExp(r'(\d+)/(\d+)').firstMatch(normalizedText);
+    if (fractionMatch != null) {
+      final numerator = fractionMatch.group(1)!;
+      final denominator = fractionMatch.group(2)!;
+      
+      debugPrint('🔢 Detected fraction: $numerator/$denominator');
+      
+      // Add numerator signs
+      int num = int.parse(numerator);
+      signSequence.addAll(_parseNumber(num));
+      
+      // Add fraction sign instead of divide
+      signSequence.add('assets/DataSet/Dictionary/sign-fraction.webm');
+      debugPrint('✅ Added fraction sign');
+      
+      // Add denominator signs
+      int denom = int.parse(denominator);
+      signSequence.addAll(_parseNumber(denom));
+      
+      return signSequence;
+    }
+    
     // Replace word forms with symbols before processing
     String processedText = _replaceWordForms(normalizedText);
     debugPrint('🔄 After word replacement: "$processedText"');

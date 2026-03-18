@@ -29,7 +29,7 @@ router.post('/teacher/login', async (req, res) => {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, teacher.password);
+    const isValidPassword = await bcrypt.compare(password, teacher.password as string);
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
@@ -45,13 +45,14 @@ router.post('/teacher/login', async (req, res) => {
     );
 
     // Remove password from response
-    delete teacher.password;
+    const teacherData: any = { ...teacher };
+    delete teacherData.password;
 
     res.json({
       success: true,
       data: {
         token,
-        user: teacher
+        user: teacherData
       }
     } as ApiResponse);
   } catch (error) {
@@ -86,7 +87,7 @@ router.post('/admin/login', async (req, res) => {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, admin.password);
+    const isValidPassword = await bcrypt.compare(password, admin.password as string);
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
@@ -102,13 +103,14 @@ router.post('/admin/login', async (req, res) => {
     );
 
     // Remove password from response
-    delete admin.password;
+    const adminData: any = { ...admin };
+    delete adminData.password;
 
     res.json({
       success: true,
       data: {
         token,
-        user: admin
+        user: adminData
       }
     } as ApiResponse);
   } catch (error) {
@@ -150,7 +152,7 @@ router.post('/login', async (req, res) => {
       } as ApiResponse);
     }
 
-    const isValidPassword = await bcrypt.compare(password, student.password);
+    const isValidPassword = await bcrypt.compare(password, student.password as string);
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
@@ -231,7 +233,14 @@ router.post('/register', async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, date('now'))
     `).run(studentId, name, email, hashedPassword, gender || 'nonbinary', classId);
 
-    const student = db.prepare('SELECT id, name, email, gender, class_id, enrollment_date FROM students WHERE id = ?').get(studentId);
+    const student = db.prepare('SELECT id, name, email, gender, class_id, enrollment_date FROM students WHERE id = ?').get(studentId) as any;
+
+    if (!student) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to create student account'
+      } as ApiResponse);
+    }
 
     // Generate JWT token
     const token = jwt.sign(

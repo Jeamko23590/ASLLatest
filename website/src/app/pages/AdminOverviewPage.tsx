@@ -208,7 +208,7 @@ export function AdminOverviewPage() {
         </CardHeader>
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {systemHealth.map((item, index) => (
+            {systemHealth.map((item: any, index: number) => (
               <div key={index} className="relative">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-[var(--foreground)]">{item.metric}</span>
@@ -297,9 +297,9 @@ export function AdminOverviewPage() {
                   fill="#8884d8"
                   dataKey="students"
                   paddingAngle={3}
-                  label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                  label={({ percent }: any) => `${(percent * 100).toFixed(0)}%`}
                 >
-                  {schoolDistribution.map((entry, index) => (
+                  {schoolDistribution.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -307,7 +307,7 @@ export function AdminOverviewPage() {
               </PieChart>
             </ResponsiveContainer>
             <div className="mt-4 space-y-2">
-              {schoolDistribution.map((school, index) => (
+              {schoolDistribution.map((school: any, index: number) => (
                 <div key={index} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: school.color }} />
