@@ -84,4 +84,22 @@ router.get('/:id/assessments', async (req, res) => {
   }
 });
 
+// Get all assessments
+router.get('/assessments/all', async (req, res) => {
+  try {
+    const assessments = db.prepare('SELECT * FROM assessments ORDER BY lesson_id').all();
+
+    res.json({
+      success: true,
+      data: assessments
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Error fetching all assessments:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch assessments'
+    } as ApiResponse);
+  }
+});
+
 export default router;

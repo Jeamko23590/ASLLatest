@@ -1,21 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
-import {
-  mockLessons,
-  mockStudents,
-  mockProgress,
-  mockAssessments,
-  mockAssessmentScores,
-  mockEngagementLogs,
-  mockTeachers,
-  mockAIInsights,
-  mockSchools,
-  mockClasses,
-} from './mockData';
-import { Student, Lesson, StudentProgress, AssessmentScore, EngagementLog, ReportData, School, Class } from './types';
+import { Student, Lesson, StudentProgress, AssessmentScore, EngagementLog, ReportData, Assessment } from './types';
 import apiService from '@/app/services/apiService';
 
 export function useStudents(teacherId?: string) {
-  const [students, setStudents] = useState<Student[]>(mockStudents);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -23,7 +11,7 @@ export function useStudents(teacherId?: string) {
       setLoading(true);
       apiService.getTeacherStudents(teacherId)
         .then(response => {
-          if (response.success && response.data) {
+          if (response.success && response.data && Array.isArray(response.data)) {
             // Transform API data to match frontend format
           const transformedStudents = (response.data as any[]).map((s: any) => ({
               id: s.id,
@@ -42,7 +30,7 @@ export function useStudents(teacherId?: string) {
           }
         })
         .catch(err => {
-          console.warn('⚠️ Failed to load students, using mock data:', err);
+          console.warn('⚠️ Failed to load students:', err);
         })
         .finally(() => setLoading(false));
     }
@@ -59,14 +47,14 @@ export function useStudents(teacherId?: string) {
 }
 
 export function useLessons() {
-  const [lessons, setLessons] = useState<Lesson[]>(mockLessons);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     apiService.getLessons()
       .then(response => {
-        if (response.success && response.data) {
+        if (response.success && response.data && Array.isArray(response.data)) {
           // Transform API data to match frontend format
           const transformedLessons = (response.data as any[]).map((l: any) => ({
             id: l.id,
@@ -82,7 +70,7 @@ export function useLessons() {
         }
       })
       .catch(err => {
-        console.warn('⚠️ Failed to load lessons, using mock data:', err);
+        console.warn('⚠️ Failed to load lessons:', err);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -90,65 +78,95 @@ export function useLessons() {
   return { lessons, loading };
 }
 
-export function useProgress() {
-  const [progress] = useState<StudentProgress[]>(mockProgress);
-  return { progress };
+export function useProgress(teacherId?: string) {
+  const [progress, setProgress] = useState<StudentProgress[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (teacherId) {
+      setLoading(true);
+      apiService.getTeacherProgress(teacherId)
+        .then(response => {
+          if (response.success && response.data && Array.isArray(response.data)) {
+            setProgress(response.data as StudentProgress[]);
+            console.log('✅ Loaded progress from API:', response.data.length);
+          }
+        })
+        .catch(err => {
+          console.warn('⚠️ Failed to load progress:', err);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [teacherId]);
+
+  return { progress, loading };
 }
 
-export function useAssessmentScores() {
-  const [scores] = useState<AssessmentScore[]>(mockAssessmentScores);
-  return { scores };
+export function useAssessmentScores(teacherId?: string) {
+  const [scores, setScores] = useState<AssessmentScore[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (teacherId) {
+      setLoading(true);
+      apiService.getTeacherAssessmentScores(teacherId)
+        .then(response => {
+          if (response.success && response.data && Array.isArray(response.data)) {
+            // Transform API data to match frontend format
+            const transformedScores = response.data.map((s: any) => ({
+              id: `score-${s.student_id}-${s.assessment_id}`,
+              studentId: s.student_id,
+              assessmentId: s.assessment_id,
+              score: s.score,
+              maxScore: s.max_score,
+              completedAt: s.completed_at,
+            }));
+            setScores(transformedScores);
+            console.log('✅ Loaded assessment scores from API:', transformedScores.length);
+          }
+        })
+        .catch(err => {
+          console.warn('⚠️ Failed to load assessment scores:', err);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [teacherId]);
+
+  return { scores, loading };
+}
+
+export function useAssessments() {
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    apiService.getAllAssessments()
+      .then(response => {
+        if (response.success && response.data && Array.isArray(response.data)) {
+          // Transform API data to match frontend format
+          const transformedAssessments = response.data.map((a: any) => ({
+            id: a.id,
+            lessonId: a.lesson_id,
+            title: a.title,
+            maxScore: a.max_score,
+          }));
+          setAssessments(transformedAssessments);
+          console.log('✅ Loaded assessments from API:', transformedAssessments.length);
+        }
+      })
+      .catch(err => {
+        console.warn('⚠️ Failed to load assessments:', err);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { assessments, loading };
 }
 
 export function useEngagementLogs() {
-  const [logs] = useState<EngagementLog[]>(mockEngagementLogs);
+  const [logs] = useState<EngagementLog[]>([]);
   return { logs };
-}
-
-export function useTeachers() {
-  const [teachers, setTeachers] = useState(mockTeachers);
-  
-  const addTeacher = (teacher: typeof mockTeachers[0]) => {
-    setTeachers(prev => [...prev, teacher]);
-  };
-  
-  const updateTeacher = (id: string, updates: Partial<typeof mockTeachers[0]>) => {
-    setTeachers(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-  };
-  
-  const deleteTeacher = (id: string) => {
-    setTeachers(prev => prev.filter(t => t.id !== id));
-  };
-  
-  return { teachers, addTeacher, updateTeacher, deleteTeacher };
-}
-
-export function useSchools() {
-  const [schools, setSchools] = useState(mockSchools);
-  
-  const addSchool = (school: typeof mockSchools[0]) => {
-    setSchools(prev => [...prev, school]);
-  };
-  
-  const updateSchool = (id: string, updates: Partial<typeof mockSchools[0]>) => {
-    setSchools(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
-  };
-  
-  const deleteSchool = (id: string) => {
-    setSchools(prev => prev.filter(s => s.id !== id));
-  };
-  
-  return { schools, addSchool, updateSchool, deleteSchool };
-}
-
-export function useClasses() {
-  const [classes] = useState(mockClasses);
-  return { classes };
-}
-
-export function useAIInsights() {
-  const [insights] = useState(mockAIInsights);
-  return { insights };
 }
 
 // Calculate completion rate for a student and lesson
@@ -172,11 +190,12 @@ export function useStudentLessonCompletion(studentId: string, lessonId: string) 
 }
 
 // Get report data for all students
-export function useReportData(): ReportData[] {
-  const { students } = useStudents();
+export function useReportData(teacherId?: string): ReportData[] {
+  const { students } = useStudents(teacherId);
   const { lessons } = useLessons();
-  const { progress } = useProgress();
-  const { scores } = useAssessmentScores();
+  const { progress } = useProgress(teacherId);
+  const { scores } = useAssessmentScores(teacherId);
+  const { assessments } = useAssessments();
   const { logs } = useEngagementLogs();
 
   const reportData = useMemo(() => {
@@ -191,7 +210,7 @@ export function useReportData(): ReportData[] {
         const completionRate = totalSubtopics > 0 ? (completedSubtopics / totalSubtopics) * 100 : 0;
 
         // Get assessment score if available
-        const assessment = mockAssessments.find((a) => a.lessonId === lesson.id);
+        const assessment = assessments.find((a) => a.lessonId === lesson.id);
         const assessmentScore = assessment
           ? scores.find((s) => s.studentId === student.id && s.assessmentId === assessment.id)
           : null;
@@ -227,7 +246,7 @@ export function useReportData(): ReportData[] {
     });
 
     return data;
-  }, [students, lessons, progress, scores, logs]);
+  }, [students, lessons, progress, scores, logs, assessments]);
 
   return reportData;
 }
@@ -236,8 +255,8 @@ export function useReportData(): ReportData[] {
 export function useDashboardStats(teacherId?: string) {
   const { students } = useStudents(teacherId);
   const { lessons } = useLessons();
-  const { progress } = useProgress();
-  const { scores } = useAssessmentScores();
+  const { progress } = useProgress(teacherId);
+  const { scores } = useAssessmentScores(teacherId);
   const { logs } = useEngagementLogs();
   const [apiStats, setApiStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -277,39 +296,19 @@ export function useDashboardStats(teacherId?: string) {
       };
     }
 
-    // Fallback to calculated stats from mock data
-    const totalSubtopics = lessons.reduce((sum, lesson) => sum + lesson.subtopics.length, 0);
-    const totalPossibleProgress = students.length * totalSubtopics;
-    const totalCompletedProgress = progress.filter((p) => p.completed).length;
-    const overallCompletionRate = totalPossibleProgress > 0
-      ? (totalCompletedProgress / totalPossibleProgress) * 100
-      : 0;
-
-    const avgAssessmentScore = scores.length > 0
-      ? (scores.reduce((sum, s) => sum + (s.score / s.maxScore) * 100, 0) / scores.length)
-      : 0;
-
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const activeStudentIds = new Set(
-      logs.filter((log) => new Date(log.date) >= sevenDaysAgo).map((log) => log.studentId)
-    );
-    const activeStudents = activeStudentIds.size;
-
-    const recentSessions = logs.filter((log) => new Date(log.date) >= sevenDaysAgo).length;
-
-    const avgEngagementTime = logs.length > 0
-      ? logs.reduce((sum, log) => sum + log.sessionDuration, 0) / logs.length
-      : 0;
-
+    // No API data available - return zeros instead of mock calculations
+    console.warn('⚠️ No dashboard stats from API, returning empty data');
     return {
       totalStudents: students.length,
       totalLessons: lessons.length,
-      overallCompletionRate: Math.round(overallCompletionRate),
-      avgAssessmentScore: Math.round(avgAssessmentScore),
-      activeStudents,
-      recentSessions,
-      avgEngagementTime: Math.round(avgEngagementTime),
+      overallCompletionRate: 0,
+      avgAssessmentScore: 0,
+      activeStudents: 0,
+      recentSessions: 0,
+      avgEngagementTime: 0,
+      lessonsCompleted: 0,
+      assessmentsCompleted: 0,
+      activeToday: 0,
     };
   }, [students, lessons, progress, scores, logs, apiStats]);
 

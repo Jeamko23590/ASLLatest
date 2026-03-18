@@ -15,6 +15,7 @@ import 'package:senyamatika_math_app/backend/services/database_seeder.dart';
 import 'package:senyamatika_math_app/backend/services/sign_language_service.dart';
 import 'package:senyamatika_math_app/backend/services/user_provider.dart' as backend;
 import 'package:senyamatika_math_app/backend/services/api_service.dart';
+import 'package:senyamatika_math_app/backend/services/data_sync_service.dart';
 
 // ============ LEGACY USER DATA (Kept for backward compatibility) ============
 class UserData {
@@ -8759,9 +8760,57 @@ class ProgressManager {
         'status': 'completed',
         'type': 'video'
       };
+      
+      // Sync progress to backend
+      _syncProgressToBackend(lessonName, subtopic);
     }
     
     _saveProgressToStorage();
+  }
+  
+  // ============ BACKEND SYNC METHOD ============
+  Future<void> _syncProgressToBackend(String lessonName, String subtopic) async {
+    try {
+      final studentId = ApiService.getStudentId();
+      if (studentId == null) {
+        debugPrint('⚠️ No student ID found, skipping backend sync');
+        return;
+      }
+      
+      // Find the lesson ID from TopicsData
+      final lesson = TopicsData.getLessonByTitle(lessonName);
+      if (lesson == null) {
+        debugPrint('⚠️ Lesson not found: $lessonName');
+        return;
+      }
+      
+      // Find subtopic index (used as subtopic ID)
+      final subtopicIndex = lesson.subtopics.indexOf(subtopic);
+      if (subtopicIndex == -1) {
+        debugPrint('⚠️ Subtopic not found: $subtopic in $lessonName');
+        return;
+      }
+      
+      final subtopicId = 'subtopic_${lesson.id}_${subtopicIndex + 1}';
+      
+      // Upload to backend (non-blocking)
+      DataSyncService.uploadProgress(
+        studentId: studentId,
+        lessonId: lesson.id,
+        subtopicId: subtopicId,
+        completed: true,
+      ).then((result) {
+        if (result['success']) {
+          debugPrint('✅ Progress synced to backend: $lessonName - $subtopic');
+        } else {
+          debugPrint('⚠️ Failed to sync progress: ${result['message']}');
+        }
+      }).catchError((error) {
+        debugPrint('❌ Error syncing progress: $error');
+      });
+    } catch (e) {
+      debugPrint('❌ Exception in _syncProgressToBackend: $e');
+    }
   }
 
   bool isSubtopicCompleted(String lessonName, String subtopic) {
@@ -8966,6 +9015,48 @@ class ProgressManager {
     
     _updateProgressPercentage();
     _saveProgressToStorage();
+    
+    // Sync assessment score to backend
+    _syncAssessmentToBackend(lessonName, score, totalQuestions);
+  }
+  
+  // ============ BACKEND ASSESSMENT SYNC METHOD ============
+  Future<void> _syncAssessmentToBackend(String lessonName, int score, int totalQuestions) async {
+    try {
+      final studentId = ApiService.getStudentId();
+      if (studentId == null) {
+        debugPrint('⚠️ No student ID found, skipping assessment sync');
+        return;
+      }
+      
+      // Find the lesson ID from TopicsData
+      final lesson = TopicsData.getLessonByTitle(lessonName);
+      if (lesson == null) {
+        debugPrint('⚠️ Lesson not found for assessment: $lessonName');
+        return;
+      }
+      
+      // Create assessment ID based on lesson
+      final assessmentId = 'assessment_${lesson.id}';
+      
+      // Upload to backend (non-blocking)
+      DataSyncService.uploadAssessmentScore(
+        studentId: studentId,
+        assessmentId: assessmentId,
+        score: score,
+        maxScore: totalQuestions,
+      ).then((result) {
+        if (result['success']) {
+          debugPrint('✅ Assessment score synced to backend: $lessonName - $score/$totalQuestions');
+        } else {
+          debugPrint('⚠️ Failed to sync assessment: ${result['message']}');
+        }
+      }).catchError((error) {
+        debugPrint('❌ Error syncing assessment: $error');
+      });
+    } catch (e) {
+      debugPrint('❌ Exception in _syncAssessmentToBackend: $e');
+    }
   }
 
   List<Map<String, dynamic>> getExerciseScoresByLesson(String lessonName) {

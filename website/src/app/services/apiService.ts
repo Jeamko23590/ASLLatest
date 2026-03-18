@@ -23,9 +23,9 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     if (this.token) {
@@ -117,6 +117,18 @@ class ApiService {
 
   async getTeacherCharts(teacherId: string) {
     return this.request(`/teachers/${teacherId}/charts`);
+  }
+
+  async getTeacherProgress(teacherId: string) {
+    return this.request(`/teachers/${teacherId}/progress/all`);
+  }
+
+  async getTeacherAssessmentScores(teacherId: string) {
+    return this.request(`/teachers/${teacherId}/assessments/scores`);
+  }
+
+  async getAllAssessments() {
+    return this.request('/lessons/assessments/all');
   }
 
   async getAdminCharts() {

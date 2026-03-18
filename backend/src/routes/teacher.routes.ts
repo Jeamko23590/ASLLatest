@@ -533,4 +533,67 @@ function getTimeAgo(dateStr: string): string {
   return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
 }
 
+// Get all progress for teacher's students
+router.get('/:teacherId/progress/all', async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const progress = db.prepare(`
+      SELECT 
+        sp.student_id,
+        sp.lesson_id,
+        sp.subtopic_id,
+        sp.completed,
+        sp.completed_at
+      FROM student_progress sp
+      JOIN students s ON sp.student_id = s.id
+      JOIN classes c ON s.class_id = c.id
+      WHERE c.teacher_id = ?
+    `).all(teacherId);
+
+    res.json({
+      success: true,
+      data: progress
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Error fetching all progress:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch progress'
+    } as ApiResponse);
+  }
+});
+
+// Get all assessment scores for teacher's students
+router.get('/:teacherId/assessments/scores', async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const scores = db.prepare(`
+      SELECT 
+        asc.student_id,
+        asc.assessment_id,
+        asc.score,
+        asc.max_score,
+        asc.completed_at
+      FROM assessment_scores asc
+      JOIN students s ON asc.student_id = s.id
+      JOIN classes c ON s.class_id = c.id
+      WHERE c.teacher_id = ?
+      ORDER BY asc.completed_at DESC
+    `).all(teacherId);
+
+    res.json({
+      success: true,
+      data: scores
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Error fetching assessment scores:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch assessment scores'
+    } as ApiResponse);
+  }
+});
+
 export default router;
