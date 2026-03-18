@@ -65,15 +65,19 @@ export function TeacherStudentsPage() {
     // Find student in the API-fetched students array
     const student = students.find(s => s.id === studentId);
     
+    console.log('calculateStudentStats for:', studentId, 'student data:', student);
+    
     if (student && student.completedLessons !== undefined) {
       // Use data from API
-      return {
-        avgProgress: student.avgScore || 0,
-        completedLessons: student.completedLessons || 0,
-        totalLessons: student.totalLessons || lessons.length,
-        completionRate: student.completionRate || 0,
-        avgScore: student.avgScore || 0,
+      const stats = {
+        avgProgress: student.avgScore ?? 0,
+        completedLessons: student.completedLessons ?? 0,
+        totalLessons: student.totalLessons ?? lessons.length,
+        completionRate: student.completionRate ?? 0,
+        avgScore: student.avgScore ?? 0,
       };
+      console.log('Using API data, stats:', stats);
+      return stats;
     }
 
     // Fallback to calculated stats from API data

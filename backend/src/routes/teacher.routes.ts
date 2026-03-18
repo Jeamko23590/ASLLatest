@@ -146,21 +146,27 @@ router.get('/:teacherId/students', async (req, res) => {
 
     const studentsData = students.map(row => {
       // Count completed lessons (where ALL subtopics are done)
+      // First, get all lessons with their subtopic counts
       const completedLessonsResult = db.prepare(`
-        SELECT COUNT(DISTINCT lesson_id) as count
+        SELECT COUNT(*) as count
         FROM (
           SELECT sp.lesson_id
           FROM student_progress sp
-          JOIN subtopics st ON sp.subtopic_id = st.id
           WHERE sp.student_id = ? AND sp.completed = 1
           GROUP BY sp.lesson_id
-          HAVING COUNT(*) = (
+          HAVING COUNT(DISTINCT sp.subtopic_id) = (
             SELECT COUNT(*) FROM subtopics WHERE lesson_id = sp.lesson_id
           )
         )
       `).get(row.id) as { count: number } | undefined;
       
       const completedLessons = completedLessonsResult?.count || 0;
+      
+      const completionRate = (row.total_lessons as number) > 0 
+        ? Math.round((completedLessons / (row.total_lessons as number)) * 100)
+        : 0;
+      
+      console.log(`Student ${row.name}: ${completedLessons}/${row.total_lessons} lessons = ${completionRate}%`);
       
       return {
         id: row.id,
@@ -171,9 +177,7 @@ router.get('/:teacherId/students', async (req, res) => {
         enrollmentDate: row.enrollment_date,
         completedLessons: completedLessons,
         totalLessons: row.total_lessons as number,
-        completionRate: (row.total_lessons as number) > 0 
-          ? Math.round((completedLessons / (row.total_lessons as number)) * 100)
-          : 0,
+        completionRate: completionRate,
         avgScore: Math.round(row.avg_score as number)
       };
     });

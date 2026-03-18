@@ -23,6 +23,7 @@ export function useStudents(teacherId?: string) {
               teacherId: teacherId,
               completedLessons: s.completedLessons || 0,
               totalLessons: s.totalLessons || 0,
+              completionRate: s.completionRate || 0,
               avgScore: s.avgScore || 0,
             }));
             setStudents(transformedStudents);
