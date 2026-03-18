@@ -26,10 +26,12 @@ type UserRole = 'teacher' | 'admin' | null;
 // Auth context for managing authentication state
 const AuthContext = React.createContext<{
   userRole: UserRole;
-  login: (role: UserRole) => void;
+  userData: { name: string } | null;
+  login: (role: UserRole, userData?: { name: string }) => void;
   logout: () => void;
 }>({
   userRole: null,
+  userData: null,
   login: () => {},
   logout: () => {},
 });
@@ -45,20 +47,33 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     return (stored as UserRole) || null;
   });
 
-  const login = React.useCallback((role: UserRole) => {
-    setUserRole(role);
-    if (role) {
-      localStorage.setItem('senyamatikard_user_role', role);
-    }
-  }, []);
+  const [userData, setUserData] = React.useState<{ name: string } | null>(() => {
+    const stored = localStorage.getItem('senyamatikard_user_data');
+    return stored ? JSON.parse(stored) : null;
+  });
 
-  const logout = React.useCallback(() => {
-    setUserRole(null);
-    localStorage.removeItem('senyamatikard_user_role');
-  }, []);
+
+  // PALITAN NG:
+const login = React.useCallback((role: UserRole, userData?: { name: string }) => {
+  setUserRole(role);
+  if (role) localStorage.setItem('senyamatikard_user_role', role);
+  if (userData) {
+    localStorage.setItem('senyamatikard_user_data', JSON.stringify(userData));
+    setUserData(userData);
+  }
+}, []);
+
+  // PALITAN NG:
+const logout = React.useCallback(() => {
+  setUserRole(null);
+  setUserData(null);
+  localStorage.removeItem('senyamatikard_user_role');
+  localStorage.removeItem('senyamatikard_user_data');
+}, []);
 
   return (
-    <AuthContext.Provider value={{ userRole, login, logout }}>
+    // PALITAN NG:
+<AuthContext.Provider value={{ userRole, userData, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -87,8 +102,8 @@ function LoginPageWrapper() {
   const { login } = useAuth();
   const [preselectedRole, setPreselectedRole] = React.useState<UserRole>(null);
 
-  const handleLogin = (role: UserRole) => {
-    login(role);
+  const handleLogin = (role: UserRole, name: string) => {
+  login(role, { name });
     if (role === 'teacher') {
       navigate('/teacher/dashboard');
     } else if (role === 'admin') {
@@ -145,10 +160,11 @@ function LandingPageWrapper() {
 function TeacherLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, userData } = useAuth();  
   const [isAIPanelOpen, setIsAIPanelOpen] = React.useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [pageContext, setPageContext] = React.useState<any>(null);
+  
 
   const handleLogout = () => {
     logout();
@@ -184,7 +200,7 @@ function TeacherLayout() {
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TeacherTopBar
-          teacherName="Teacher Maria"
+          teacherName={userData?.name || 'Teacher'} 
           onToggleAI={() => setIsAIPanelOpen(!isAIPanelOpen)}
           isAIPanelOpen={isAIPanelOpen}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}

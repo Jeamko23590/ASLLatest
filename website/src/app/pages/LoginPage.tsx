@@ -10,7 +10,7 @@ import apiService from '@/app/services/apiService';
 type UserRole = 'teacher' | 'admin';
 
 interface LoginPageProps {
-  onLogin: (role: UserRole) => void;
+  onLogin: (role: UserRole, name: string) => void;
   onNavigateBack: () => void;
   preselectedRole?: UserRole | null;
 }
@@ -39,10 +39,12 @@ export function LoginPage({ onLogin, onNavigateBack, preselectedRole }: LoginPag
         response = await apiService.adminLogin(username, password);
       }
 
-      if (response.success) {
-        console.log('✅ Login successful:', response.data);
-        onLogin(selectedRole);
-      } else {
+     // PALITAN NG:
+// PALITAN NG:
+if (response.success) {
+  console.log('✅ Login successful:', response.data);
+  onLogin(selectedRole, response.data?.user?.first_name || '');
+}else {
         setError(response.error || 'Invalid credentials. Please try again.');
       }
     } catch (err: any) {

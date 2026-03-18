@@ -10,8 +10,6 @@ export const mockLessons: Lesson[] = [
     subtopics: [
       { id: 'sub-1-1', lessonId: 'lesson-1', title: 'Whole Numbers', order: 1 },
       { id: 'sub-1-2', lessonId: 'lesson-1', title: 'Comparison', order: 2 },
-      { id: 'sub-1-3', lessonId: 'lesson-1', title: 'Ordinal Numbers', order: 3 },
-      { id: 'sub-1-4', lessonId: 'lesson-1', title: 'Money Value', order: 4 },
     ],
   },
   {
@@ -32,9 +30,11 @@ export const mockLessons: Lesson[] = [
     description: 'Understanding fractions and their operations',
     hasAssessment: true,
     subtopics: [
-      { id: 'sub-3-1', lessonId: 'lesson-3', title: 'Introduction to Fractions', order: 1 },
-      { id: 'sub-3-2', lessonId: 'lesson-3', title: 'Adding and Subtracting Fractions', order: 2 },
-      { id: 'sub-3-3', lessonId: 'lesson-3', title: 'Multiplying and Dividing Fractions', order: 3 },
+      { id: 'sub-3-1', lessonId: 'lesson-3', title: 'Recognizing Fractions', order: 1 },
+      { id: 'sub-3-2', lessonId: 'lesson-3', title: 'Describing Fractions', order: 2 },
+      { id: 'sub-3-3', lessonId: 'lesson-3', title: 'Reading Fractions', order: 3 },
+      { id: 'sub-3-4', lessonId: 'lesson-3', title: 'Comparing Fractions', order: 4 },
+      { id: 'sub-3-5', lessonId: 'lesson-3', title: 'Ordering Fractions', order: 5 },
     ],
   },
   {
@@ -43,8 +43,8 @@ export const mockLessons: Lesson[] = [
     description: 'Working with decimal numbers',
     hasAssessment: true,
     subtopics: [
-      { id: 'sub-4-1', lessonId: 'lesson-4', title: 'Understanding Decimals', order: 1 },
-      { id: 'sub-4-2', lessonId: 'lesson-4', title: 'Operations with Decimals', order: 2 },
+      { id: 'sub-4-1', lessonId: 'lesson-4', title: 'Decimal to Fraction Conversion', order: 1 },
+      { id: 'sub-4-2', lessonId: 'lesson-4', title: 'Place Value in Decimals', order: 2 },
     ],
   },
   {
@@ -53,19 +53,21 @@ export const mockLessons: Lesson[] = [
     description: 'Understanding and calculating percentages',
     hasAssessment: true,
     subtopics: [
-      { id: 'sub-5-1', lessonId: 'lesson-5', title: 'What is Percentage', order: 1 },
-      { id: 'sub-5-2', lessonId: 'lesson-5', title: 'Calculating Percentages', order: 2 },
-      { id: 'sub-5-3', lessonId: 'lesson-5', title: 'Percentage Applications', order: 3 },
+      { id: 'sub-5-1', lessonId: 'lesson-5', title: 'Describing Percentage', order: 1 },
+      { id: 'sub-5-2', lessonId: 'lesson-5', title: 'Converting Fractions to Percentages', order: 2 },
+      { id: 'sub-5-3', lessonId: 'lesson-5', title: 'Converting Percentages to Fractions', order: 3 },
     ],
   },
   {
     id: 'lesson-6',
-    title: 'Mensuration',
-    description: 'Measuring time and understanding calendar concepts',
+    title: 'Algebra',
+    description: 'Understanding missing values in fundamental operations',
     hasAssessment: true,
     subtopics: [
-      { id: 'sub-6-1', lessonId: 'lesson-6', title: 'Time', order: 1 },
-      { id: 'sub-6-2', lessonId: 'lesson-6', title: 'Days, Weeks, and Months', order: 2 },
+      { id: 'sub-6-1', lessonId: 'lesson-6', title: 'Missing Values in Addition', order: 1 },
+      { id: 'sub-6-2', lessonId: 'lesson-6', title: 'Missing Values in Subtraction', order: 2 },
+      { id: 'sub-6-3', lessonId: 'lesson-6', title: 'Missing Values in Multiplication', order: 3 },
+      { id: 'sub-6-4', lessonId: 'lesson-6', title: 'Missing Values in Division', order: 4 },
     ],
   },
 ];
@@ -134,8 +136,6 @@ export const mockProgress: StudentProgress[] = [
   // Lesson 1 - ALL subtopics completed
   { studentId: 'student-1', lessonId: 'lesson-1', subtopicId: 'sub-1-1', completed: true, completedAt: '2026-01-02' },
   { studentId: 'student-1', lessonId: 'lesson-1', subtopicId: 'sub-1-2', completed: true, completedAt: '2026-01-04' },
-  { studentId: 'student-1', lessonId: 'lesson-1', subtopicId: 'sub-1-3', completed: true, completedAt: '2026-01-06' },
-  { studentId: 'student-1', lessonId: 'lesson-1', subtopicId: 'sub-1-4', completed: true, completedAt: '2026-01-08' },
   // Lesson 2 - ALL subtopics completed
   { studentId: 'student-1', lessonId: 'lesson-2', subtopicId: 'sub-2-1', completed: true, completedAt: '2026-01-09' },
   { studentId: 'student-1', lessonId: 'lesson-2', subtopicId: 'sub-2-2', completed: true, completedAt: '2026-01-10' },
@@ -145,6 +145,8 @@ export const mockProgress: StudentProgress[] = [
   { studentId: 'student-1', lessonId: 'lesson-3', subtopicId: 'sub-3-1', completed: true, completedAt: '2026-01-13' },
   { studentId: 'student-1', lessonId: 'lesson-3', subtopicId: 'sub-3-2', completed: true, completedAt: '2026-01-14' },
   { studentId: 'student-1', lessonId: 'lesson-3', subtopicId: 'sub-3-3', completed: true, completedAt: '2026-01-15' },
+  { studentId: 'student-1', lessonId: 'lesson-3', subtopicId: 'sub-3-4', completed: true, completedAt: '2026-01-16' },
+  { studentId: 'student-1', lessonId: 'lesson-3', subtopicId: 'sub-3-5', completed: true, completedAt: '2026-01-17' },
   // Lesson 4 - Some progress but not completed
   { studentId: 'student-1', lessonId: 'lesson-4', subtopicId: 'sub-4-1', completed: true, completedAt: '2026-01-16' },
   { studentId: 'student-1', lessonId: 'lesson-4', subtopicId: 'sub-4-2', completed: false, completedAt: '' },
@@ -155,13 +157,13 @@ export const mockProgress: StudentProgress[] = [
   // Lesson 6 - Not started
   { studentId: 'student-1', lessonId: 'lesson-6', subtopicId: 'sub-6-1', completed: false, completedAt: '' },
   { studentId: 'student-1', lessonId: 'lesson-6', subtopicId: 'sub-6-2', completed: false, completedAt: '' },
+  { studentId: 'student-1', lessonId: 'lesson-6', subtopicId: 'sub-6-3', completed: false, completedAt: '' },
+  { studentId: 'student-1', lessonId: 'lesson-6', subtopicId: 'sub-6-4', completed: false, completedAt: '' },
   
   // Student 2 - Juan Dela Cruz (1 lesson completed: lesson 1)
   // Lesson 1 - ALL subtopics completed
   { studentId: 'student-2', lessonId: 'lesson-1', subtopicId: 'sub-1-1', completed: true, completedAt: '2026-01-04' },
   { studentId: 'student-2', lessonId: 'lesson-1', subtopicId: 'sub-1-2', completed: true, completedAt: '2026-01-06' },
-  { studentId: 'student-2', lessonId: 'lesson-1', subtopicId: 'sub-1-3', completed: true, completedAt: '2026-01-08' },
-  { studentId: 'student-2', lessonId: 'lesson-1', subtopicId: 'sub-1-4', completed: true, completedAt: '2026-01-10' },
   // Lesson 2 - Partial progress (not completed)
   { studentId: 'student-2', lessonId: 'lesson-2', subtopicId: 'sub-2-1', completed: true, completedAt: '2026-01-12' },
   { studentId: 'student-2', lessonId: 'lesson-2', subtopicId: 'sub-2-2', completed: false, completedAt: '' },
@@ -171,6 +173,8 @@ export const mockProgress: StudentProgress[] = [
   { studentId: 'student-2', lessonId: 'lesson-3', subtopicId: 'sub-3-1', completed: false, completedAt: '' },
   { studentId: 'student-2', lessonId: 'lesson-3', subtopicId: 'sub-3-2', completed: false, completedAt: '' },
   { studentId: 'student-2', lessonId: 'lesson-3', subtopicId: 'sub-3-3', completed: false, completedAt: '' },
+  { studentId: 'student-2', lessonId: 'lesson-3', subtopicId: 'sub-3-4', completed: false, completedAt: '' },
+  { studentId: 'student-2', lessonId: 'lesson-3', subtopicId: 'sub-3-5', completed: false, completedAt: '' },
   // Lesson 4 - Not started
   { studentId: 'student-2', lessonId: 'lesson-4', subtopicId: 'sub-4-1', completed: false, completedAt: '' },
   { studentId: 'student-2', lessonId: 'lesson-4', subtopicId: 'sub-4-2', completed: false, completedAt: '' },
@@ -181,13 +185,13 @@ export const mockProgress: StudentProgress[] = [
   // Lesson 6 - Not started
   { studentId: 'student-2', lessonId: 'lesson-6', subtopicId: 'sub-6-1', completed: false, completedAt: '' },
   { studentId: 'student-2', lessonId: 'lesson-6', subtopicId: 'sub-6-2', completed: false, completedAt: '' },
+  { studentId: 'student-2', lessonId: 'lesson-6', subtopicId: 'sub-6-3', completed: false, completedAt: '' },
+  { studentId: 'student-2', lessonId: 'lesson-6', subtopicId: 'sub-6-4', completed: false, completedAt: '' },
   
   // Student 3 - Sofia Reyes (6/6 lessons completed - ALL lessons)
   // Lesson 1 - ALL subtopics completed
   { studentId: 'student-3', lessonId: 'lesson-1', subtopicId: 'sub-1-1', completed: true, completedAt: '2026-01-02' },
   { studentId: 'student-3', lessonId: 'lesson-1', subtopicId: 'sub-1-2', completed: true, completedAt: '2026-01-03' },
-  { studentId: 'student-3', lessonId: 'lesson-1', subtopicId: 'sub-1-3', completed: true, completedAt: '2026-01-04' },
-  { studentId: 'student-3', lessonId: 'lesson-1', subtopicId: 'sub-1-4', completed: true, completedAt: '2026-01-05' },
   // Lesson 2 - ALL subtopics completed
   { studentId: 'student-3', lessonId: 'lesson-2', subtopicId: 'sub-2-1', completed: true, completedAt: '2026-01-06' },
   { studentId: 'student-3', lessonId: 'lesson-2', subtopicId: 'sub-2-2', completed: true, completedAt: '2026-01-07' },
@@ -197,6 +201,8 @@ export const mockProgress: StudentProgress[] = [
   { studentId: 'student-3', lessonId: 'lesson-3', subtopicId: 'sub-3-1', completed: true, completedAt: '2026-01-10' },
   { studentId: 'student-3', lessonId: 'lesson-3', subtopicId: 'sub-3-2', completed: true, completedAt: '2026-01-11' },
   { studentId: 'student-3', lessonId: 'lesson-3', subtopicId: 'sub-3-3', completed: true, completedAt: '2026-01-12' },
+  { studentId: 'student-3', lessonId: 'lesson-3', subtopicId: 'sub-3-4', completed: true, completedAt: '2026-01-13' },
+  { studentId: 'student-3', lessonId: 'lesson-3', subtopicId: 'sub-3-5', completed: true, completedAt: '2026-01-14' },
   // Lesson 4 - ALL subtopics completed
   { studentId: 'student-3', lessonId: 'lesson-4', subtopicId: 'sub-4-1', completed: true, completedAt: '2026-01-13' },
   { studentId: 'student-3', lessonId: 'lesson-4', subtopicId: 'sub-4-2', completed: true, completedAt: '2026-01-14' },
@@ -207,13 +213,13 @@ export const mockProgress: StudentProgress[] = [
   // Lesson 6 - ALL subtopics completed
   { studentId: 'student-3', lessonId: 'lesson-6', subtopicId: 'sub-6-1', completed: true, completedAt: '2026-01-18' },
   { studentId: 'student-3', lessonId: 'lesson-6', subtopicId: 'sub-6-2', completed: true, completedAt: '2026-01-19' },
+  { studentId: 'student-3', lessonId: 'lesson-6', subtopicId: 'sub-6-3', completed: true, completedAt: '2026-01-20' },
+  { studentId: 'student-3', lessonId: 'lesson-6', subtopicId: 'sub-6-4', completed: true, completedAt: '2026-01-21' },
   
   // Student 4 - Carlos Lopez (0 lessons completed - some progress but nothing finished)
   // Lesson 1 - Partial progress (not completed)
   { studentId: 'student-4', lessonId: 'lesson-1', subtopicId: 'sub-1-1', completed: true, completedAt: '2026-01-10' },
-  { studentId: 'student-4', lessonId: 'lesson-1', subtopicId: 'sub-1-2', completed: true, completedAt: '2026-01-12' },
-  { studentId: 'student-4', lessonId: 'lesson-1', subtopicId: 'sub-1-3', completed: false, completedAt: '' },
-  { studentId: 'student-4', lessonId: 'lesson-1', subtopicId: 'sub-1-4', completed: false, completedAt: '' },
+  { studentId: 'student-4', lessonId: 'lesson-1', subtopicId: 'sub-1-2', completed: false, completedAt: '' },
   // Lesson 2 - Partial progress (not completed)
   { studentId: 'student-4', lessonId: 'lesson-2', subtopicId: 'sub-2-1', completed: true, completedAt: '2026-01-14' },
   { studentId: 'student-4', lessonId: 'lesson-2', subtopicId: 'sub-2-2', completed: false, completedAt: '' },
@@ -223,6 +229,8 @@ export const mockProgress: StudentProgress[] = [
   { studentId: 'student-4', lessonId: 'lesson-3', subtopicId: 'sub-3-1', completed: false, completedAt: '' },
   { studentId: 'student-4', lessonId: 'lesson-3', subtopicId: 'sub-3-2', completed: false, completedAt: '' },
   { studentId: 'student-4', lessonId: 'lesson-3', subtopicId: 'sub-3-3', completed: false, completedAt: '' },
+  { studentId: 'student-4', lessonId: 'lesson-3', subtopicId: 'sub-3-4', completed: false, completedAt: '' },
+  { studentId: 'student-4', lessonId: 'lesson-3', subtopicId: 'sub-3-5', completed: false, completedAt: '' },
   // Lesson 4 - Not started
   { studentId: 'student-4', lessonId: 'lesson-4', subtopicId: 'sub-4-1', completed: false, completedAt: '' },
   { studentId: 'student-4', lessonId: 'lesson-4', subtopicId: 'sub-4-2', completed: false, completedAt: '' },
@@ -233,13 +241,13 @@ export const mockProgress: StudentProgress[] = [
   // Lesson 6 - Not started
   { studentId: 'student-4', lessonId: 'lesson-6', subtopicId: 'sub-6-1', completed: false, completedAt: '' },
   { studentId: 'student-4', lessonId: 'lesson-6', subtopicId: 'sub-6-2', completed: false, completedAt: '' },
+  { studentId: 'student-4', lessonId: 'lesson-6', subtopicId: 'sub-6-3', completed: false, completedAt: '' },
+  { studentId: 'student-4', lessonId: 'lesson-6', subtopicId: 'sub-6-4', completed: false, completedAt: '' },
   
   // Student 5 - Alex Rivera (3 lessons completed: lessons 1, 2, 3)
   // Lesson 1 - ALL subtopics completed
   { studentId: 'student-5', lessonId: 'lesson-1', subtopicId: 'sub-1-1', completed: true, completedAt: '2026-01-03' },
   { studentId: 'student-5', lessonId: 'lesson-1', subtopicId: 'sub-1-2', completed: true, completedAt: '2026-01-04' },
-  { studentId: 'student-5', lessonId: 'lesson-1', subtopicId: 'sub-1-3', completed: true, completedAt: '2026-01-05' },
-  { studentId: 'student-5', lessonId: 'lesson-1', subtopicId: 'sub-1-4', completed: true, completedAt: '2026-01-06' },
   // Lesson 2 - ALL subtopics completed
   { studentId: 'student-5', lessonId: 'lesson-2', subtopicId: 'sub-2-1', completed: true, completedAt: '2026-01-07' },
   { studentId: 'student-5', lessonId: 'lesson-2', subtopicId: 'sub-2-2', completed: true, completedAt: '2026-01-08' },
@@ -249,6 +257,8 @@ export const mockProgress: StudentProgress[] = [
   { studentId: 'student-5', lessonId: 'lesson-3', subtopicId: 'sub-3-1', completed: true, completedAt: '2026-01-11' },
   { studentId: 'student-5', lessonId: 'lesson-3', subtopicId: 'sub-3-2', completed: true, completedAt: '2026-01-12' },
   { studentId: 'student-5', lessonId: 'lesson-3', subtopicId: 'sub-3-3', completed: true, completedAt: '2026-01-13' },
+  { studentId: 'student-5', lessonId: 'lesson-3', subtopicId: 'sub-3-4', completed: true, completedAt: '2026-01-14' },
+  { studentId: 'student-5', lessonId: 'lesson-3', subtopicId: 'sub-3-5', completed: true, completedAt: '2026-01-15' },
   // Lesson 4 - Partial progress (not completed)
   { studentId: 'student-5', lessonId: 'lesson-4', subtopicId: 'sub-4-1', completed: true, completedAt: '2026-01-14' },
   { studentId: 'student-5', lessonId: 'lesson-4', subtopicId: 'sub-4-2', completed: false, completedAt: '' },
@@ -259,13 +269,13 @@ export const mockProgress: StudentProgress[] = [
   // Lesson 6 - Not started
   { studentId: 'student-5', lessonId: 'lesson-6', subtopicId: 'sub-6-1', completed: false, completedAt: '' },
   { studentId: 'student-5', lessonId: 'lesson-6', subtopicId: 'sub-6-2', completed: false, completedAt: '' },
+  { studentId: 'student-5', lessonId: 'lesson-6', subtopicId: 'sub-6-3', completed: false, completedAt: '' },
+  { studentId: 'student-5', lessonId: 'lesson-6', subtopicId: 'sub-6-4', completed: false, completedAt: '' },
   
   // Student 6 - Isabella Torres (1 lesson completed: lesson 1)
   // Lesson 1 - ALL subtopics completed
   { studentId: 'student-6', lessonId: 'lesson-1', subtopicId: 'sub-1-1', completed: true, completedAt: '2026-01-07' },
   { studentId: 'student-6', lessonId: 'lesson-1', subtopicId: 'sub-1-2', completed: true, completedAt: '2026-01-09' },
-  { studentId: 'student-6', lessonId: 'lesson-1', subtopicId: 'sub-1-3', completed: true, completedAt: '2026-01-11' },
-  { studentId: 'student-6', lessonId: 'lesson-1', subtopicId: 'sub-1-4', completed: true, completedAt: '2026-01-13' },
   // Lesson 2 - Partial progress (not completed)
   { studentId: 'student-6', lessonId: 'lesson-2', subtopicId: 'sub-2-1', completed: true, completedAt: '2026-01-15' },
   { studentId: 'student-6', lessonId: 'lesson-2', subtopicId: 'sub-2-2', completed: true, completedAt: '2026-01-17' },
@@ -275,6 +285,8 @@ export const mockProgress: StudentProgress[] = [
   { studentId: 'student-6', lessonId: 'lesson-3', subtopicId: 'sub-3-1', completed: false, completedAt: '' },
   { studentId: 'student-6', lessonId: 'lesson-3', subtopicId: 'sub-3-2', completed: false, completedAt: '' },
   { studentId: 'student-6', lessonId: 'lesson-3', subtopicId: 'sub-3-3', completed: false, completedAt: '' },
+  { studentId: 'student-6', lessonId: 'lesson-3', subtopicId: 'sub-3-4', completed: false, completedAt: '' },
+  { studentId: 'student-6', lessonId: 'lesson-3', subtopicId: 'sub-3-5', completed: false, completedAt: '' },
   // Lesson 4 - Not started
   { studentId: 'student-6', lessonId: 'lesson-4', subtopicId: 'sub-4-1', completed: false, completedAt: '' },
   { studentId: 'student-6', lessonId: 'lesson-4', subtopicId: 'sub-4-2', completed: false, completedAt: '' },
@@ -285,6 +297,8 @@ export const mockProgress: StudentProgress[] = [
   // Lesson 6 - Not started
   { studentId: 'student-6', lessonId: 'lesson-6', subtopicId: 'sub-6-1', completed: false, completedAt: '' },
   { studentId: 'student-6', lessonId: 'lesson-6', subtopicId: 'sub-6-2', completed: false, completedAt: '' },
+  { studentId: 'student-6', lessonId: 'lesson-6', subtopicId: 'sub-6-3', completed: false, completedAt: '' },
+  { studentId: 'student-6', lessonId: 'lesson-6', subtopicId: 'sub-6-4', completed: false, completedAt: '' },
 ];
 
 // Mock Assessments
@@ -294,7 +308,7 @@ export const mockAssessments: Assessment[] = [
   { id: 'assess-3', lessonId: 'lesson-3', title: 'Fraction Assessment', maxScore: 10 },
   { id: 'assess-4', lessonId: 'lesson-4', title: 'Decimal Numbers Assessment', maxScore: 10 },
   { id: 'assess-5', lessonId: 'lesson-5', title: 'Percentage Assessment', maxScore: 10 },
-  { id: 'assess-6', lessonId: 'lesson-6', title: 'Mensuration Assessment', maxScore: 10 },
+  { id: 'assess-6', lessonId: 'lesson-6', title: 'Algebra Assessment', maxScore: 10 },
 ];
 
 // Mock Assessment Scores

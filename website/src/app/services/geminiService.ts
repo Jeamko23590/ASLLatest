@@ -1,5 +1,5 @@
-const GEMINI_API_KEY = 'AIzaSyArDTyyt70LQ8R2Y8goEJZwdx4nfa9vVr4';
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_API_KEY = 'AIzaSyBc99D8D02sxIhZnBOyQp0UpBbA3Y_5H1Y';
+const GEMINI_MODEL = 'gemma-3-27b-it'; 
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 export interface GeminiError {

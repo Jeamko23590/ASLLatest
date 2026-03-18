@@ -25,7 +25,7 @@ export function useStudents(teacherId?: string) {
         .then(response => {
           if (response.success && response.data) {
             // Transform API data to match frontend format
-            const transformedStudents = response.data.map((s: any) => ({
+          const transformedStudents = (response.data as any[]).map((s: any) => ({
               id: s.id,
               name: s.name,
               grade: s.grade,
@@ -68,7 +68,7 @@ export function useLessons() {
       .then(response => {
         if (response.success && response.data) {
           // Transform API data to match frontend format
-          const transformedLessons = response.data.map((l: any) => ({
+          const transformedLessons = (response.data as any[]).map((l: any) => ({
             id: l.id,
             title: l.title,
             description: l.description,
