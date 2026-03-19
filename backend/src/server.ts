@@ -77,7 +77,7 @@ app.use((req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📱 Mobile access: http://192.168.1.59:${PORT}`);
+  console.log(`📱 Mobile access: http://192.168.1.138:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
