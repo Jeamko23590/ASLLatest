@@ -3670,68 +3670,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       // Register user in database
       final fullName = '$firstName $lastName';
       
-      // Try backend API first
-      try {
-        final apiResult = await ApiService.register(
-          email: email,
-          password: password,
-          name: fullName,
-          school: school,
-          section: section,
-        );
-
-        if (apiResult['success']) {
-          // Save token
-          ApiService.setToken(apiResult['data']['token']);
-          
-          // Also save to local storage as backup
-          await _authService.registerWithEmail(
-            email: email,
-            password: password,
-            name: fullName,
-            school: school,
-            section: section,
-          );
-
-          if (mounted) {
-            // Save user data in provider
-            UserProvider.setUser(UserData(
-              name: fullName,
-              email: email,
-              school: school,
-              section: section,
-            ));
-
-            // Set current user for progress tracking
-            progressManager.setCurrentUser(apiResult['data']['user']?['id'] ?? email);
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Account created successfully! (Synced to server)',
-                  style: TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
-                ),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-
-            Future.delayed(const Duration(milliseconds: 1500), () {
-              if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const DashboardScreen()),
-                );
-              }
-            });
-          }
-          return;
-        }
-      } catch (apiError) {
-        print('Backend API unavailable, using local storage: $apiError');
-      }
-
-      // Fallback to local storage only
+      // Use local storage for registration
+      // Note: Students authenticate via student ID provided by teacher, not email/password
       final user = await _authService.registerWithEmail(
         email: email,
         password: password,
@@ -3756,10 +3696,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Account created successfully! (Local only)',
+                'Account created successfully!',
                 style: TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
               ),
-              backgroundColor: Colors.orange,
+              backgroundColor: Colors.green,
               duration: const Duration(seconds: 2),
             ),
           );
@@ -4342,74 +4282,8 @@ class _LogInScreenState extends State<LogInScreen> {
     });
 
     try {
-      // Try backend API first
-      try {
-        final apiResult = await ApiService.login(
-          email: email,
-          password: password,
-        );
-
-        if (apiResult['success']) {
-          // Save token
-          ApiService.setToken(apiResult['data']['token']);
-          final userData = apiResult['data']['user'];
-          
-          // Also authenticate locally as backup
-          await _authService.signInWithEmail(
-            email: email,
-            password: password,
-          );
-
-          // Load progress from backend
-          try {
-            final progressResult = await ApiService.getProgress();
-            if (progressResult['success']) {
-              // TODO: Merge backend progress with local
-              print('Loaded ${progressResult['data']['progress'].length} progress items from server');
-            }
-          } catch (e) {
-            print('Could not load progress from server: $e');
-          }
-
-          if (mounted) {
-            // Set user in provider
-            UserProvider.setUser(UserData(
-              name: userData['name'],
-              email: userData['email'],
-              school: userData['school'],
-              section: userData['section'],
-            ));
-
-            // Set current user for progress tracking
-            progressManager.setCurrentUser(userData['id'] ?? email);
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Logged in successfully! (Synced with server)',
-                  style: TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
-                ),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-
-            Future.delayed(const Duration(milliseconds: 1500), () {
-              if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const DashboardScreen()),
-                );
-              }
-            });
-          }
-          return;
-        }
-      } catch (apiError) {
-        print('Backend API unavailable, using local storage: $apiError');
-      }
-
-      // Fallback to local authentication
+      // Use local authentication
+      // Note: Students authenticate via student ID provided by teacher for backend sync
       final user = await _authService.signInWithEmail(
         email: email,
         password: password,
@@ -4431,10 +4305,10 @@ class _LogInScreenState extends State<LogInScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Logged in successfully! (Local only)',
+                'Logged in successfully!',
                 style: TextStyle(fontFamily: 'Poppins-Regular', fontWeight: FontWeight.bold),
               ),
-              backgroundColor: Colors.orange,
+              backgroundColor: Colors.green,
               duration: const Duration(seconds: 2),
             ),
           );
