@@ -192,6 +192,26 @@ class ApiService {
     return this.request('/admin/classes');
   }
 
+  async createClass(data: { schoolId: string; grade: string; section: string; teacherId?: string | null }) {
+    return this.request('/admin/classes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateClass(id: string, data: { grade?: string; section?: string; teacherId?: string | null }) {
+    return this.request(`/admin/classes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteClass(id: string) {
+    return this.request(`/admin/classes/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Student endpoints (for APK)
   async recordProgress(data: {
     studentId: string;

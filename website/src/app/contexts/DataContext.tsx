@@ -12,9 +12,9 @@ interface DataContextType {
   addTeacher: (teacher: Teacher) => Promise<any>;
   updateTeacher: (id: string, updates: Partial<Teacher>) => Promise<any>;
   deleteTeacher: (id: string) => Promise<void>;
-  addClass: (classData: Class) => void;
-  updateClass: (id: string, updates: Partial<Class>) => void;
-  deleteClass: (id: string) => void;
+  addClass: (classData: Class) => Promise<void>;
+  updateClass: (id: string, updates: Partial<Class>) => Promise<void>;
+  deleteClass: (id: string) => Promise<void>;
   addSchool: (school: School) => Promise<void>;
   updateSchool: (id: string, updates: Partial<School>) => Promise<void>;
   deleteSchool: (id: string) => Promise<void>;
@@ -170,60 +170,60 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addClass = (classData: Class) => {
-    setClasses(prev => [...prev, classData]);
-    
-    // If a teacher is assigned, update their classesHandled
-    if (classData.teacherId) {
-      setTeachers(prev => prev.map(t => {
-        if (t.id === classData.teacherId) {
-          return { ...t, classesHandled: [...t.classesHandled, classData.id] };
-        }
-        return t;
-      }));
+  const addClass = async (classData: Class) => {
+    try {
+      const response = await apiService.createClass({
+        schoolId: classData.schoolId,
+        grade: classData.grade,
+        section: classData.section,
+        teacherId: classData.teacherId,
+      });
+
+      if (response.success) {
+        console.log('✅ Class created:', response.data);
+        await refreshData();
+      } else {
+        throw new Error(response.error || 'Failed to add class');
+      }
+    } catch (err: any) {
+      console.error('❌ Failed to add class:', err);
+      throw err;
     }
   };
 
-  const updateClass = (id: string, updates: Partial<Class>) => {
-    const oldClass = classes.find(c => c.id === id);
-    setClasses(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-    
-    // Handle teacher assignment changes
-    if (updates.teacherId !== undefined && oldClass) {
-      // Remove from old teacher
-      if (oldClass.teacherId && oldClass.teacherId !== updates.teacherId) {
-        setTeachers(prev => prev.map(t => {
-          if (t.id === oldClass.teacherId) {
-            return { ...t, classesHandled: t.classesHandled.filter(cId => cId !== id) };
-          }
-          return t;
-        }));
+  const updateClass = async (id: string, updates: Partial<Class>) => {
+    try {
+      const response = await apiService.updateClass(id, {
+        grade: updates.grade,
+        section: updates.section,
+        teacherId: updates.teacherId,
+      });
+
+      if (response.success) {
+        console.log('✅ Class updated');
+        await refreshData();
+      } else {
+        throw new Error(response.error || 'Failed to update class');
       }
+    } catch (err: any) {
+      console.error('❌ Failed to update class:', err);
+      throw err;
+    }
+  };
+
+  const deleteClass = async (id: string) => {
+    try {
+      const response = await apiService.deleteClass(id);
       
-      // Add to new teacher
-      if (updates.teacherId) {
-        setTeachers(prev => prev.map(t => {
-          if (t.id === updates.teacherId && !t.classesHandled.includes(id)) {
-            return { ...t, classesHandled: [...t.classesHandled, id] };
-          }
-          return t;
-        }));
+      if (response.success) {
+        console.log('✅ Class deleted');
+        await refreshData();
+      } else {
+        throw new Error(response.error || 'Failed to delete class');
       }
-    }
-  };
-
-  const deleteClass = (id: string) => {
-    const classToDelete = classes.find(c => c.id === id);
-    setClasses(prev => prev.filter(c => c.id !== id));
-    
-    // Remove from teacher's classesHandled
-    if (classToDelete?.teacherId) {
-      setTeachers(prev => prev.map(t => {
-        if (t.id === classToDelete.teacherId) {
-          return { ...t, classesHandled: t.classesHandled.filter(cId => cId !== id) };
-        }
-        return t;
-      }));
+    } catch (err: any) {
+      console.error('❌ Failed to delete class:', err);
+      throw err;
     }
   };
 
