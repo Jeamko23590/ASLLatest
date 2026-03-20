@@ -274,7 +274,7 @@ class SignLanguageService {
       signs.add(_thousandsSigns[thousands.toString()]!);
       debugPrint('  → Added thousands: $thousands');
     }
-    
+        
     // Extract hundreds (300, 400, etc.)
     int remainder = number % 1000;
     int hundreds = (remainder ~/ 100) * 100;
