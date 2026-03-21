@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { User, Award, Clock, TrendingUp, Search, Star, Users as UsersIcon, ChevronDown, ChevronRight, CheckCircle, X, ArrowUp, ArrowDown } from 'lucide-react';
-import { useStudents, useAssessmentScores, useLessons } from '@/app/hooks/useData';
-import { mockAssessments, mockProgress } from '@/app/hooks/mockData';
+import { useStudents, useAssessmentScores, useLessons, useAssessments, useProgress } from '@/app/hooks/useData';
 import { Badge } from '@/app/components/ui/badge';
 import apiService from '@/app/services/apiService';
 
@@ -20,8 +19,10 @@ export function TeacherStudentsPage() {
   }, []);
 
   const { students } = useStudents(teacherId);
-  const { scores } = useAssessmentScores();
+  const { scores } = useAssessmentScores(teacherId);
   const { lessons } = useLessons();
+  const { assessments } = useAssessments();
+  const { progress } = useProgress(teacherId);
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'firstName' | 'lastName' | 'completionRate' | 'avgScore'>('firstName');
@@ -64,24 +65,28 @@ export function TeacherStudentsPage() {
     // Find student in the API-fetched students array
     const student = students.find(s => s.id === studentId);
     
+    console.log('calculateStudentStats for:', studentId, 'student data:', student);
+    
     if (student && student.completedLessons !== undefined) {
       // Use data from API
-      return {
-        avgProgress: student.avgScore || 0,
-        completedLessons: student.completedLessons || 0,
-        totalLessons: student.totalLessons || lessons.length,
-        completionRate: student.completionRate || 0,
-        avgScore: student.avgScore || 0,
+      const stats = {
+        avgProgress: student.avgScore ?? 0,
+        completedLessons: student.completedLessons ?? 0,
+        totalLessons: student.totalLessons ?? lessons.length,
+        completionRate: student.completionRate ?? 0,
+        avgScore: student.avgScore ?? 0,
       };
+      console.log('Using API data, stats:', stats);
+      return stats;
     }
 
-    // Fallback to mock data calculation if API data not available
+    // Fallback to calculated stats from API data
     let completedLessons = 0;
     let totalProgress = 0;
     
     lessons.forEach((lesson) => {
       if (lesson.subtopics && lesson.subtopics.length > 0) {
-        const subtopicsForLesson = mockProgress.filter(
+        const subtopicsForLesson = progress.filter(
           (p) => p.studentId === studentId && p.lessonId === lesson.id
         );
         const completedSubtopics = subtopicsForLesson.filter((p) => p.completed).length;
@@ -165,7 +170,7 @@ export function TeacherStudentsPage() {
         const studentAssessments = scores
           .filter(s => s.studentId === student.id)
           .map(s => {
-            const assessment = mockAssessments.find(a => a.id === s.assessmentId);
+            const assessment = assessments.find(a => a.id === s.assessmentId);
             const lesson = lessons.find(l => l.id === assessment?.lessonId);
             return {
               assessmentId: s.assessmentId,
@@ -180,7 +185,7 @@ export function TeacherStudentsPage() {
         
         // Get detailed lesson progress for this student
         const lessonProgress = lessons.map(lesson => {
-          const subtopicsForLesson = mockProgress.filter(
+          const subtopicsForLesson = progress.filter(
             p => p.studentId === student.id && p.lessonId === lesson.id
           );
           const completedSubtopics = subtopicsForLesson.filter(p => p.completed).length;
@@ -238,7 +243,7 @@ export function TeacherStudentsPage() {
           hasAssessment: lesson.hasAssessment,
           subtopicsCount: lesson.subtopics.length,
         })),
-        assessments: mockAssessments.map(a => ({
+        assessments: assessments.map(a => ({
           id: a.id,
           title: a.title,
           lessonTitle: lessons.find(l => l.id === a.lessonId)?.title || 'Unknown',
@@ -252,7 +257,7 @@ export function TeacherStudentsPage() {
         },
       });
     }
-  }, [students, filteredStudents, searchTerm, sortBy, sortOrder, scores, setPageContext]);
+  }, [students, filteredStudents, searchTerm, sortBy, sortOrder, scores, assessments, progress, lessons, setPageContext]);
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -488,7 +493,7 @@ export function TeacherStudentsPage() {
                               // Check if student has taken this assessment
                               const studentScore = scores.find(
                                 (s) => s.studentId === student.id && 
-                                       mockAssessments.find((a) => a.id === s.assessmentId && a.lessonId === lesson.id)
+                                       assessments.find((a) => a.id === s.assessmentId && a.lessonId === lesson.id)
                               );
                               
                               if (studentScore) {
@@ -597,7 +602,7 @@ export function TeacherStudentsPage() {
                     </div>
                     <div className="space-y-1.5 pl-8">
                       {studentScores.map((scoreData) => {
-                        const assessment = mockAssessments.find((a) => a.id === scoreData.assessmentId);
+                        const assessment = assessments.find((a) => a.id === scoreData.assessmentId);
                         const lesson = lessons.find((l) => l.id === assessment?.lessonId);
                         const percentage = Math.round((scoreData.score / scoreData.maxScore) * 100);
                         const scoreBadge = getProgressBadge(percentage);

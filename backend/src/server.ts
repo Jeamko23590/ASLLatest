@@ -11,7 +11,7 @@ import reportRoutes from './routes/report.routes.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // Middleware - Allow connections from website and mobile apps
 app.use(cors({

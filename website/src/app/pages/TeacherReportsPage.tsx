@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { useLessons, useStudents, useProgress, useAssessmentScores } from '@/app/hooks/useData';
+import { useLessons, useStudents, useProgress, useAssessmentScores, useAssessments } from '@/app/hooks/useData';
 import { Download, FileText, TrendingUp, TrendingDown, BarChart3, Calendar, BookOpen, Users, Target, Award, Filter } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AIInsightsAccordion } from '@/app/components/AIInsightsAccordion';
-import { mockAssessments } from '@/app/hooks/mockData';
 
 export function TeacherReportsPage() {
   const { setPageContext } = useOutletContext<{ setPageContext: (context: any) => void }>();
+  
+  // Get teacher ID from localStorage
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const teacherId = user.id;
+  
   const { lessons } = useLessons();
-  const { students } = useStudents();
-  const { progress } = useProgress();
-  const { scores: assessmentScores } = useAssessmentScores();
+  const { students } = useStudents(teacherId);
+  const { progress } = useProgress(teacherId);
+  const { scores: assessmentScores } = useAssessmentScores(teacherId);
+  const { assessments } = useAssessments();
   const [selectedLesson, setSelectedLesson] = useState<string>('all');
 
   // Calculate realistic lesson completion data
@@ -65,7 +70,7 @@ export function TeacherReportsPage() {
       .filter((lesson) => lesson.hasAssessment)
       .map((lesson) => {
         // Find the assessment for this lesson
-        const assessment = mockAssessments.find((a) => a.lessonId === lesson.id);
+        const assessment = assessments.find((a) => a.lessonId === lesson.id);
         if (!assessment) {
           return {
             id: lesson.id,
@@ -111,7 +116,7 @@ export function TeacherReportsPage() {
           passRate: isNaN(passRate) ? 0 : passRate,
         };
       });
-  }, [lessons, assessmentScores, mockAssessments]);
+  }, [lessons, assessmentScores, assessments]);
 
   // Calculate overall statistics
   const overallStats = React.useMemo(() => {
@@ -445,7 +450,7 @@ export function TeacherReportsPage() {
         const studentAssessments = assessmentScores
           .filter(score => score.studentId === student.id)
           .map(score => {
-            const assessment = mockAssessments.find(a => a.id === score.assessmentId);
+            const assessment = assessments.find(a => a.id === score.assessmentId);
             const lesson = lessons.find(l => l.id === assessment?.lessonId);
             const scorePercent = Math.round((score.score / score.maxScore) * 100);
             
@@ -481,10 +486,10 @@ export function TeacherReportsPage() {
         detailedStudentData: detailedStudentData,
         students: students,
         lessons: lessons,
-        assessments: mockAssessments,
+        assessments: assessments,
       });
     }
-  }, [overallStats, lessonCompletionData, assessmentScoresData, aiInsights, selectedLesson, filteredLessons, filteredAssessments, students, lessons, progress, assessmentScores, mockAssessments, setPageContext]);
+  }, [overallStats, lessonCompletionData, assessmentScoresData, aiInsights, selectedLesson, filteredLessons, filteredAssessments, students, lessons, progress, assessmentScores, assessments, setPageContext]);
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">

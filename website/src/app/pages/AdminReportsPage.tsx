@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
-import { useReportData, useAIInsights, useLessons, useStudents } from '@/app/hooks/useData';
+import { useReportData, useLessons, useStudents } from '@/app/hooks/useData';
 import { Download, FileText, Brain, TrendingUp, AlertCircle, CheckCircle, Search, SlidersHorizontal, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Badge } from '@/app/components/ui/badge';
@@ -23,7 +23,6 @@ type SortDirection = 'asc' | 'desc';
 
 export function AdminReportsPage() {
   const reportData = useReportData();
-  const { insights } = useAIInsights();
   const { lessons } = useLessons();
   const { students } = useStudents();
 

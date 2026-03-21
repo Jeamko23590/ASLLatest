@@ -8,7 +8,6 @@ class ApiService {
   
   // Base URL configuration
   static String get baseUrl {
-    // For APK release on physical device - use your WiFi IP
     return 'http://$_localIP:3001/api';
   }
 
@@ -29,22 +28,31 @@ class ApiService {
     _token = null;
   }
 
-  // Get headers with authentication
-  static Map<String, String> _getHeaders() {
-    final headers = {
-      'Content-Type': 'application/json',
-    };
-    
-    if (_token != null) {
-      headers['Authorization'] = 'Bearer $_token';
-    }
-    
-    return headers;
+  // Set student ID (used as authentication)
+  static void setStudentId(String studentId) {
+    _token = studentId;
   }
 
-  // ============ AUTH ENDPOINTS ============
+  // Get current student ID
+  static String? getStudentId() {
+    return _token;
+  }
 
-  /// Register new user
+  // Clear student ID (logout)
+  static void clearStudentId() {
+    _token = null;
+  }
+
+  // Get headers
+  static Map<String, String> _getHeaders() {
+    return {
+      'Content-Type': 'application/json',
+    };
+  }
+
+  // ============ ADDED: register() - for main.dart compatibility ============
+  /// Register a new user (local app uses LocalAuthService, but this provides
+  /// backend sync if available)
   static Future<Map<String, dynamic>> register({
     required String email,
     required String password,
@@ -55,7 +63,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
         body: jsonEncode({
           'email': email,
           'password': password,
@@ -63,13 +71,12 @@ class ApiService {
           'school': school,
           'section': section,
         }),
-      );
+      ).timeout(const Duration(seconds: 8));
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 201) {
-        _token = data['token'];
-        return {'success': true, 'data': data};
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': data['data'] ?? data};
       } else {
         return {'success': false, 'error': data['error'] ?? 'Registration failed'};
       }
@@ -79,7 +86,8 @@ class ApiService {
     }
   }
 
-  /// Login user
+  // ============ ADDED: login() - for main.dart compatibility ============
+  /// Login with email and password
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -87,18 +95,17 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
         body: jsonEncode({
           'email': email,
           'password': password,
         }),
-      );
+      ).timeout(const Duration(seconds: 8));
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        _token = data['token'];
-        return {'success': true, 'data': data};
+        return {'success': true, 'data': data['data'] ?? data};
       } else {
         return {'success': false, 'error': data['error'] ?? 'Login failed'};
       }
@@ -108,116 +115,24 @@ class ApiService {
     }
   }
 
-  /// Verify token
-  static Future<Map<String, dynamic>> verifyToken() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/auth/verify'),
-        headers: _getHeaders(),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && data['valid'] == true) {
-        return {'success': true, 'data': data};
-      } else {
-        _token = null;
-        return {'success': false, 'error': 'Invalid token'};
-      }
-    } catch (e) {
-      debugPrint('Verify token error: $e');
-      return {'success': false, 'error': 'Network error: $e'};
-    }
-  }
-
-  // ============ USER ENDPOINTS ============
-
-  /// Get user profile
-  static Future<Map<String, dynamic>> getUserProfile() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/users/profile'),
-        headers: _getHeaders(),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
-      } else {
-        return {'success': false, 'error': data['error'] ?? 'Failed to get profile'};
-      }
-    } catch (e) {
-      debugPrint('Get profile error: $e');
-      return {'success': false, 'error': 'Network error: $e'};
-    }
-  }
-
-  /// Update user profile
-  static Future<Map<String, dynamic>> updateUserProfile({
-    String? name,
-    String? school,
-    String? section,
-  }) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/users/profile'),
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'name': name,
-          'school': school,
-          'section': section,
-        }),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
-      } else {
-        return {'success': false, 'error': data['error'] ?? 'Failed to update profile'};
-      }
-    } catch (e) {
-      debugPrint('Update profile error: $e');
-      return {'success': false, 'error': 'Network error: $e'};
-    }
-  }
-
-  /// Get user statistics
-  static Future<Map<String, dynamic>> getUserStats() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/users/stats'),
-        headers: _getHeaders(),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
-      } else {
-        return {'success': false, 'error': data['error'] ?? 'Failed to get stats'};
-      }
-    } catch (e) {
-      debugPrint('Get stats error: $e');
-      return {'success': false, 'error': 'Network error: $e'};
-    }
-  }
-
-  // ============ PROGRESS ENDPOINTS ============
-
-  /// Get all progress
+  // ============ ADDED: getProgress() - for main.dart compatibility ============
+  /// Get progress for the currently logged-in user
   static Future<Map<String, dynamic>> getProgress() async {
     try {
+      final studentId = getStudentId();
+      if (studentId == null) {
+        return {'success': false, 'error': 'No student ID set'};
+      }
+
       final response = await http.get(
-        Uri.parse('$baseUrl/progress'),
+        Uri.parse('$baseUrl/students/$studentId/progress'),
         headers: _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 8));
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        return {'success': true, 'data': data['data'] ?? data};
       } else {
         return {'success': false, 'error': data['error'] ?? 'Failed to get progress'};
       }
@@ -227,81 +142,267 @@ class ApiService {
     }
   }
 
-  /// Get progress for specific topic
-  static Future<Map<String, dynamic>> getTopicProgress(String topic) async {
+  // ============ AUTH ENDPOINTS ============
+
+  /// Verify student ID exists in the system
+  static Future<Map<String, dynamic>> verifyStudentId(String studentId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/progress/topic/$topic'),
-        headers: _getHeaders(),
-      );
+        Uri.parse('$baseUrl/students/$studentId'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 8));
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {'success': true, 'data': data['data']};
       } else {
-        return {'success': false, 'error': data['error'] ?? 'Failed to get topic progress'};
+        return {'success': false, 'error': data['error'] ?? 'Student ID not found'};
       }
     } catch (e) {
-      debugPrint('Get topic progress error: $e');
+      debugPrint('Verify student ID error: $e');
       return {'success': false, 'error': 'Network error: $e'};
     }
   }
 
-  /// Save progress
-  static Future<Map<String, dynamic>> saveProgress({
-    required String topic,
-    String? lessonId,
-    int? score,
-    int? maxScore,
-    bool? completed,
-    int? timeSpent,
+  // ============ LESSON ENDPOINTS ============
+
+  /// Get all lessons with subtopics
+  static Future<Map<String, dynamic>> getLessons() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/lessons'),
+        headers: _getHeaders(),
+      ).timeout(const Duration(seconds: 8));
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Failed to get lessons'};
+      }
+    } catch (e) {
+      debugPrint('Get lessons error: $e');
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  /// Get single lesson by ID
+  static Future<Map<String, dynamic>> getLesson(String lessonId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/lessons/$lessonId'),
+        headers: _getHeaders(),
+      ).timeout(const Duration(seconds: 8));
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Failed to get lesson'};
+      }
+    } catch (e) {
+      debugPrint('Get lesson error: $e');
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  /// Get all assessments
+  static Future<Map<String, dynamic>> getAllAssessments() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/lessons/assessments/all'),
+        headers: _getHeaders(),
+      ).timeout(const Duration(seconds: 8));
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Failed to get assessments'};
+      }
+    } catch (e) {
+      debugPrint('Get assessments error: $e');
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  // ============ STUDENT PROGRESS ENDPOINTS ============
+
+  /// Get student info by ID
+  static Future<Map<String, dynamic>> getStudent(String studentId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/students/$studentId'),
+        headers: _getHeaders(),
+      ).timeout(const Duration(seconds: 8));
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Failed to get student'};
+      }
+    } catch (e) {
+      debugPrint('Get student error: $e');
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  /// Get student progress
+  static Future<Map<String, dynamic>> getStudentProgress(String studentId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/students/$studentId/progress'),
+        headers: _getHeaders(),
+      ).timeout(const Duration(seconds: 8));
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Failed to get progress'};
+      }
+    } catch (e) {
+      debugPrint('Get progress error: $e');
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  /// Record student progress (subtopic completion)
+  static Future<Map<String, dynamic>> recordProgress({
+    required String studentId,
+    required String lessonId,
+    required String subtopicId,
+    required bool completed,
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/progress/save'),
+        Uri.parse('$baseUrl/students/progress'),
         headers: _getHeaders(),
         body: jsonEncode({
-          'topic': topic,
+          'studentId': studentId,
           'lessonId': lessonId,
-          'score': score,
-          'maxScore': maxScore,
+          'subtopicId': subtopicId,
           'completed': completed,
-          'timeSpent': timeSpent,
         }),
-      );
+      ).timeout(const Duration(seconds: 8));
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        return {'success': true, 'data': data['data'] ?? data, 'message': data['message']};
       } else {
-        return {'success': false, 'error': data['error'] ?? 'Failed to save progress'};
+        return {'success': false, 'error': data['error'] ?? 'Failed to record progress'};
       }
     } catch (e) {
-      debugPrint('Save progress error: $e');
+      debugPrint('Record progress error: $e');
       return {'success': false, 'error': 'Network error: $e'};
     }
   }
 
-  /// Sync multiple progress items
-  static Future<Map<String, dynamic>> syncProgress(List<Map<String, dynamic>> progressItems) async {
+  /// Record assessment score
+  static Future<Map<String, dynamic>> recordAssessmentScore({
+    required String studentId,
+    required String assessmentId,
+    required int score,
+    required int maxScore,
+  }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/progress/sync'),
+        Uri.parse('$baseUrl/students/assessments/score'),
         headers: _getHeaders(),
         body: jsonEncode({
-          'progressItems': progressItems,
+          'studentId': studentId,
+          'assessmentId': assessmentId,
+          'score': score,
+          'maxScore': maxScore,
         }),
-      );
+      ).timeout(const Duration(seconds: 8));
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        return {'success': true, 'data': data['data'] ?? data, 'message': data['message']};
       } else {
-        return {'success': false, 'error': data['error'] ?? 'Failed to sync progress'};
+        return {'success': false, 'error': data['error'] ?? 'Failed to record score'};
       }
+    } catch (e) {
+      debugPrint('Record assessment score error: $e');
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  /// Log student engagement
+  static Future<Map<String, dynamic>> logEngagement({
+    required String studentId,
+    required int sessionDuration,
+    required int lessonsAccessed,
+    required String activityType,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/students/engagement'),
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'studentId': studentId,
+          'sessionDuration': sessionDuration,
+          'lessonsAccessed': lessonsAccessed,
+          'activityType': activityType,
+        }),
+      ).timeout(const Duration(seconds: 8));
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data, 'message': data['message']};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Failed to log engagement'};
+      }
+    } catch (e) {
+      debugPrint('Log engagement error: $e');
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  /// Sync multiple progress items (batch update)
+  static Future<Map<String, dynamic>> syncProgress(
+      List<Map<String, dynamic>> progressItems) async {
+    try {
+      int successCount = 0;
+      int failCount = 0;
+      List<String> errors = [];
+
+      for (var item in progressItems) {
+        final result = await recordProgress(
+          studentId: item['studentId'],
+          lessonId: item['lessonId'],
+          subtopicId: item['subtopicId'],
+          completed: item['completed'] ?? false,
+        );
+
+        if (result['success'] == true) {
+          successCount++;
+        } else {
+          failCount++;
+          errors.add(result['error'] ?? 'Unknown error');
+        }
+      }
+
+      return {
+        'success': failCount == 0,
+        'data': {
+          'synced': successCount,
+          'failed': failCount,
+          'total': progressItems.length,
+        },
+        'errors': errors,
+      };
     } catch (e) {
       debugPrint('Sync progress error: $e');
       return {'success': false, 'error': 'Network error: $e'};

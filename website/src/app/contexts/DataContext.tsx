@@ -1,34 +1,22 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import {
-  mockLessons,
-  mockStudents,
-  mockProgress,
-  mockAssessments,
-  mockAssessmentScores,
-  mockEngagementLogs,
-  mockTeachers,
-  mockAIInsights,
-  mockSchools,
-  mockClasses,
-} from '@/app/hooks/mockData';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Teacher, Class, Student, School } from '@/app/hooks/types';
 import apiService from '@/app/services/apiService';
 
 interface DataContextType {
-  teachers: typeof mockTeachers;
-  classes: typeof mockClasses;
-  students: typeof mockStudents;
-  schools: typeof mockSchools;
+  teachers: Teacher[];
+  classes: Class[];
+  students: Student[];
+  schools: School[];
   loading: boolean;
   error: string | null;
-  addTeacher: (teacher: typeof mockTeachers[0]) => Promise<void>;
-  updateTeacher: (id: string, updates: Partial<typeof mockTeachers[0]>) => Promise<void>;
+  addTeacher: (teacher: Teacher) => Promise<any>;
+  updateTeacher: (id: string, updates: Partial<Teacher>) => Promise<any>;
   deleteTeacher: (id: string) => Promise<void>;
-  addClass: (classData: typeof mockClasses[0]) => void;
-  updateClass: (id: string, updates: Partial<typeof mockClasses[0]>) => void;
+  addClass: (classData: Class) => void;
+  updateClass: (id: string, updates: Partial<Class>) => void;
   deleteClass: (id: string) => void;
-  addSchool: (school: typeof mockSchools[0]) => Promise<void>;
-  updateSchool: (id: string, updates: Partial<typeof mockSchools[0]>) => Promise<void>;
+  addSchool: (school: School) => Promise<void>;
+  updateSchool: (id: string, updates: Partial<School>) => Promise<void>;
   deleteSchool: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
 }
@@ -36,11 +24,11 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [teachers, setTeachers] = useState(mockTeachers);
-  const [classes, setClasses] = useState(mockClasses);
-  const [students] = useState(mockStudents);
-  const [schools, setSchools] = useState(mockSchools);
-  const [loading, setLoading] = useState(false);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [students] = useState<Student[]>([]); // Students come from teacher-specific endpoints
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loading, setLoading] = useState(true); // Start with loading true
   const [error, setError] = useState<string | null>(null);
 
   // Try to fetch real data from API, fallback to mock data if API is not available
@@ -55,7 +43,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         apiService.getSchools(),
       ]);
 
-      if (teachersRes.success && teachersRes.data) {
+      if (teachersRes.success && teachersRes.data && Array.isArray(teachersRes.data)) {
         // Transform API data to match frontend format
         const transformedTeachers = teachersRes.data.map((t: any) => ({
           id: t.id,
@@ -74,7 +62,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('✅ Loaded teachers from API:', transformedTeachers.length);
       }
 
-      if (classesRes.success && classesRes.data) {
+      if (classesRes.success && classesRes.data && Array.isArray(classesRes.data)) {
         const transformedClasses = classesRes.data.map((c: any) => ({
           id: c.id,
           schoolId: c.school_id,
@@ -88,7 +76,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('✅ Loaded classes from API:', transformedClasses.length);
       }
 
-      if (schoolsRes.success && schoolsRes.data) {
+      if (schoolsRes.success && schoolsRes.data && Array.isArray(schoolsRes.data)) {
         const transformedSchools = schoolsRes.data.map((s: any) => ({
           id: s.id,
           name: s.name,
@@ -97,9 +85,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('✅ Loaded schools from API:', transformedSchools.length);
       }
     } catch (err: any) {
-      console.warn('⚠️ API not available, using mock data:', err.message);
-      setError('Using offline data');
-      // Keep using mock data
+      console.error('❌ API not available:', err.message);
+      setError('Backend API is not available. Please ensure the server is running.');
+      // Clear data to show empty state instead of mock data
+      setTeachers([]);
+      setClasses([]);
+      setSchools([]);
     } finally {
       setLoading(false);
     }
@@ -110,7 +101,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     refreshData();
   }, []);
 
-  const addTeacher = async (teacher: typeof mockTeachers[0]) => {
+  const addTeacher = async (teacher: Teacher) => {
     try {
       const response = await apiService.createTeacher({
         firstName: teacher.firstName,
@@ -132,22 +123,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       console.error('❌ Failed to add teacher:', err);
-      // Fallback to local state
-      setTeachers(prev => [...prev, teacher]);
-      
-      if (teacher.classesHandled && teacher.classesHandled.length > 0) {
-        setClasses(prev => prev.map(c => {
-          if (teacher.classesHandled.includes(c.id)) {
-            return { ...c, teacherId: teacher.id };
-          }
-          return c;
-        }));
-      }
       throw err;
     }
   };
 
-  const updateTeacher = async (id: string, updates: Partial<typeof mockTeachers[0]>) => {
+  const updateTeacher = async (id: string, updates: Partial<Teacher>) => {
     try {
       const response = await apiService.updateTeacher(id, {
         firstName: updates.firstName,
@@ -170,19 +150,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       console.error('❌ Failed to update teacher:', err);
-      // Fallback to local state
-      setTeachers(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-      
-      if (updates.classesHandled) {
-        setClasses(prev => prev.map(c => {
-          if (updates.classesHandled?.includes(c.id)) {
-            return { ...c, teacherId: id };
-          } else if (c.teacherId === id && !updates.classesHandled?.includes(c.id)) {
-            return { ...c, teacherId: null };
-          }
-          return c;
-        }));
-      }
       throw err;
     }
   };
@@ -199,14 +166,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       console.error('❌ Failed to delete teacher:', err);
-      // Fallback to local state
-      setTeachers(prev => prev.filter(t => t.id !== id));
-      setClasses(prev => prev.map(c => c.teacherId === id ? { ...c, teacherId: null } : c));
       throw err;
     }
   };
 
-  const addClass = (classData: typeof mockClasses[0]) => {
+  const addClass = (classData: Class) => {
     setClasses(prev => [...prev, classData]);
     
     // If a teacher is assigned, update their classesHandled
@@ -220,7 +184,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateClass = (id: string, updates: Partial<typeof mockClasses[0]>) => {
+  const updateClass = (id: string, updates: Partial<Class>) => {
     const oldClass = classes.find(c => c.id === id);
     setClasses(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
     
@@ -263,7 +227,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addSchool = async (school: typeof mockSchools[0]) => {
+  const addSchool = async (school: School) => {
     try {
       const response = await apiService.createSchool({
         name: school.name,
@@ -277,13 +241,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       console.error('❌ Failed to add school:', err);
-      // Fallback to local state
-      setSchools(prev => [...prev, school]);
       throw err;
     }
   };
 
-  const updateSchool = async (id: string, updates: Partial<typeof mockSchools[0]>) => {
+  const updateSchool = async (id: string, updates: Partial<School>) => {
     try {
       const response = await apiService.updateSchool(id, {
         name: updates.name,
@@ -297,14 +259,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       console.error('❌ Failed to update school:', err);
-      // Fallback to local state
-      setSchools(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
-      
-      if (updates.name) {
-        setClasses(prev => prev.map(c => 
-          c.schoolId === id ? { ...c, schoolName: updates.name! } : c
-        ));
-      }
       throw err;
     }
   };
@@ -321,15 +275,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       console.error('❌ Failed to delete school:', err);
-      
-      // Check if school has classes
-      const schoolClasses = classes.filter(c => c.schoolId === id);
-      if (schoolClasses.length > 0) {
-        throw new Error('Cannot delete school with existing classes. Please delete all classes first.');
-      }
-      
-      // Fallback to local state
-      setSchools(prev => prev.filter(s => s.id !== id));
       throw err;
     }
   };

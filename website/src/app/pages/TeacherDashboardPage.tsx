@@ -48,7 +48,7 @@ export function TeacherDashboardPage() {
     if (chartData?.activityTrend && chartData.activityTrend.length > 0) {
       return chartData.activityTrend;
     }
-    // Fallback mock data
+    // No data available from API
     return [
       { day: 'Mon', completed: 0, assessed: 0 },
       { day: 'Tue', completed: 0, assessed: 0 },
@@ -103,20 +103,8 @@ export function TeacherDashboardPage() {
     }));
   }, [chartData, students]);
 
-  // Calculate assessments completed (lessons with assessments)
-  const assessmentsCompleted = React.useMemo(() => {
-    return lessons.filter((lesson) => lesson.hasAssessment).length * students.length * 0.7; // Mock calculation
-  }, [lessons, students]);
-
-  // Calculate average study time
-  const avgStudyTime = React.useMemo(() => {
-    return 23; // Mock average in minutes
-  }, []);
-
-  // Calculate active students today
-  const activeToday = React.useMemo(() => {
-    return Math.round(students.length * 0.68); // Mock calculation
-  }, [students]);
+  // These stats are now provided by the API via useDashboardStats
+  // No need for mock calculations - they come from the backend
 
   // Update page context for AI when data changes
   React.useEffect(() => {
@@ -125,11 +113,11 @@ export function TeacherDashboardPage() {
         stats: {
           totalStudents: stats.totalStudents,
           activeStudents: stats.activeStudents,
-          lessonsCompleted: Math.round(stats.totalLessons * students.length * 0.65),
+          lessonsCompleted: stats.lessonsCompleted || 0,
           averageProgress: stats.overallCompletionRate,
-          assessmentsCompleted: Math.round(assessmentsCompleted),
-          avgStudyTime: avgStudyTime,
-          activeToday: activeToday,
+          assessmentsCompleted: stats.assessmentsCompleted || 0,
+          avgStudyTime: stats.avgEngagementTime || 0,
+          activeToday: stats.activeToday || 0,
         },
         students: students.map(s => ({
           name: s.name,
@@ -145,7 +133,7 @@ export function TeacherDashboardPage() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats.totalStudents, stats.activeStudents, stats.totalLessons, stats.overallCompletionRate, students.length, lessons.length, assessmentsCompleted, avgStudyTime, activeToday]);
+  }, [stats.totalStudents, stats.activeStudents, stats.totalLessons, stats.overallCompletionRate, students.length, lessons.length, stats.assessmentsCompleted, stats.avgEngagementTime, stats.activeToday]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -173,7 +161,7 @@ export function TeacherDashboardPage() {
         </div>
         <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--accent)]/20 to-transparent rounded-lg border-2 border-[var(--accent)]/30">
           <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-sm font-medium">{activeToday} students active now</span>
+          <span className="text-sm font-medium">{stats.activeToday || 0} students active now</span>
         </div>
       </div>
 
@@ -209,7 +197,7 @@ export function TeacherDashboardPage() {
             </div>
             <p className="text-sm text-muted-foreground mb-1">Lessons Completed</p>
             <p className="text-3xl font-bold text-[var(--primary)] group-hover:scale-105 transition-transform">
-              {Math.round(stats.totalLessons * students.length * 0.65)}
+              {stats.lessonsCompleted || 0}
             </p>
             <p className="text-xs text-muted-foreground mt-2">Across all students</p>
           </CardContent>
@@ -228,7 +216,7 @@ export function TeacherDashboardPage() {
             </div>
             <p className="text-sm text-muted-foreground mb-1">Assessments Completed</p>
             <p className="text-3xl font-bold text-[var(--primary)] group-hover:scale-105 transition-transform">
-              {Math.round(assessmentsCompleted)}
+              {stats.assessmentsCompleted || 0}
             </p>
             <p className="text-xs text-muted-foreground mt-2">With scores recorded</p>
           </CardContent>
@@ -260,7 +248,7 @@ export function TeacherDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-green-700 font-medium mb-1">Active Today</p>
-              <p className="text-2xl font-bold text-green-800">{activeToday}</p>
+              <p className="text-2xl font-bold text-green-800">{stats.activeToday || 0}</p>
             </div>
             <TrendingUp className="h-8 w-8 text-green-600" />
           </div>
@@ -271,7 +259,7 @@ export function TeacherDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-blue-700 font-medium mb-1">Avg Study Time</p>
-              <p className="text-2xl font-bold text-blue-800">{avgStudyTime} min</p>
+              <p className="text-2xl font-bold text-blue-800">{Math.round(stats.avgEngagementTime || 0)} min</p>
             </div>
             <Clock className="h-8 w-8 text-blue-600" />
           </div>
@@ -457,11 +445,11 @@ export function TeacherDashboardPage() {
           stats: {
             totalStudents: stats.totalStudents,
             activeStudents: stats.activeStudents,
-            lessonsCompleted: Math.round(stats.totalLessons * students.length * 0.65),
+            lessonsCompleted: stats.lessonsCompleted || 0,
             averageProgress: stats.overallCompletionRate,
-            assessmentsCompleted: Math.round(assessmentsCompleted),
-            avgStudyTime: avgStudyTime,
-            activeToday: activeToday,
+            assessmentsCompleted: stats.assessmentsCompleted || 0,
+            avgStudyTime: stats.avgEngagementTime || 0,
+            activeToday: stats.activeToday || 0,
           },
           students: students.map(s => ({
             name: s.name,

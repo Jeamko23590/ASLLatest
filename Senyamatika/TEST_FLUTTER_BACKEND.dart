@@ -33,6 +33,9 @@ class _TestScreenState extends State<TestScreen> {
   bool _isLoading = false;
   final List<String> _testResults = [];
 
+  // Use a fixed test student ID that exists in your backend
+  static const String _testStudentId = 'test_student_001';
+
   Future<void> _runTests() async {
     setState(() {
       _isLoading = true;
@@ -47,71 +50,119 @@ class _TestScreenState extends State<TestScreen> {
       _addResult('✅ Health check passed');
     } else {
       _addResult('❌ Health check failed - Is backend running?');
+      _addResult('   URL: ${ApiService.baseUrl}');
       setState(() {
         _isLoading = false;
-        _status = 'Tests failed';
+        _status = 'Tests failed - Backend not reachable';
       });
       return;
     }
 
-    // Test 2: Register
+    // Test 2: Register (using new register method)
     _addResult('🔍 Testing registration...');
     final registerResult = await ApiService.register(
-      email: 'test${DateTime.now().millisecondsSinceEpoch}@example.com',
+      email: 'test${DateTime.now().millisecondsSinceEpoch}@gmail.com',
       password: 'test123',
       name: 'Test User',
       school: 'Test School',
-      section: 'Test Section',
+      section: 'Grade 7',
     );
 
-    if (registerResult['success']) {
+    if (registerResult['success'] == true) {
       _addResult('✅ Registration successful');
-      _addResult('   Token: ${registerResult['data']['token'].substring(0, 20)}...');
+      final token = registerResult['data']?['token'];
+      if (token != null) {
+        _addResult('   Token: ${token.toString().substring(0, 20)}...');
+        ApiService.setToken(token);
+      }
     } else {
-      _addResult('❌ Registration failed: ${registerResult['error']}');
+      _addResult('⚠️ Registration: ${registerResult['error']}');
+      _addResult('   (May already exist — continuing tests)');
     }
 
-    // Test 3: Get Profile
-    _addResult('🔍 Testing get profile...');
-    final profileResult = await ApiService.getUserProfile();
-    if (profileResult['success']) {
-      _addResult('✅ Get profile successful');
-      _addResult('   User: ${profileResult['data']['name']}');
-    } else {
-      _addResult('❌ Get profile failed: ${profileResult['error']}');
-    }
-
-    // Test 4: Save Progress
-    _addResult('🔍 Testing save progress...');
-    final progressResult = await ApiService.saveProgress(
-      topic: 'fractions',
-      lessonId: 'lesson_1',
-      score: 8,
-      maxScore: 10,
-      completed: true,
-      timeSpent: 120,
+    // Test 3: Login (replaces getUserProfile)
+    _addResult('🔍 Testing login...');
+    final loginResult = await ApiService.login(
+      email: 'testuser@gmail.com',
+      password: 'test123',
     );
-
-    if (progressResult['success']) {
-      _addResult('✅ Save progress successful');
+    if (loginResult['success'] == true) {
+      _addResult('✅ Login successful');
+      _addResult('   User: ${loginResult['data']?['user']?['name'] ?? 'N/A'}');
     } else {
-      _addResult('❌ Save progress failed: ${progressResult['error']}');
+      _addResult('⚠️ Login: ${loginResult['error']}');
     }
 
-    // Test 5: Get Progress
+    // Test 4: Get Student (replaces saveProgress for student-based flow)
+    _addResult('🔍 Testing get student by ID...');
+    ApiService.setStudentId(_testStudentId);
+    final studentResult = await ApiService.getStudent(_testStudentId);
+    if (studentResult['success'] == true) {
+      _addResult('✅ Get student successful');
+      _addResult('   Student: ${studentResult['data']?['name'] ?? 'N/A'}');
+    } else {
+      _addResult('⚠️ Get student: ${studentResult['error']}');
+    }
+
+    // Test 5: Record Progress (replaces saveProgress)
+    _addResult('🔍 Testing record progress...');
+    final progressResult = await ApiService.recordProgress(
+      studentId: _testStudentId,
+      lessonId: 'lesson_1',
+      subtopicId: 'subtopic_lesson_1_1',
+      completed: true,
+    );
+    if (progressResult['success'] == true) {
+      _addResult('✅ Record progress successful');
+    } else {
+      _addResult('⚠️ Record progress: ${progressResult['error']}');
+    }
+
+    // Test 6: Get Progress (using new getProgress method)
     _addResult('🔍 Testing get progress...');
     final getProgressResult = await ApiService.getProgress();
-    if (getProgressResult['success']) {
+    if (getProgressResult['success'] == true) {
       _addResult('✅ Get progress successful');
-      final items = getProgressResult['data'] as List;
-      _addResult('   Found ${items.length} progress items');
+      final data = getProgressResult['data'];
+      if (data is List) {
+        _addResult('   Found ${data.length} progress items');
+      } else {
+        _addResult('   Data received');
+      }
     } else {
-      _addResult('❌ Get progress failed: ${getProgressResult['error']}');
+      _addResult('⚠️ Get progress: ${getProgressResult['error']}');
+    }
+
+    // Test 7: Record Assessment Score
+    _addResult('🔍 Testing record assessment score...');
+    final scoreResult = await ApiService.recordAssessmentScore(
+      studentId: _testStudentId,
+      assessmentId: 'assessment_lesson_1',
+      score: 8,
+      maxScore: 10,
+    );
+    if (scoreResult['success'] == true) {
+      _addResult('✅ Record assessment score successful');
+    } else {
+      _addResult('⚠️ Record assessment: ${scoreResult['error']}');
+    }
+
+    // Test 8: Get All Lessons
+    _addResult('🔍 Testing get lessons...');
+    final lessonsResult = await ApiService.getLessons();
+    if (lessonsResult['success'] == true) {
+      _addResult('✅ Get lessons successful');
+      final data = lessonsResult['data'];
+      if (data is List) {
+        _addResult('   Found ${data.length} lessons');
+      }
+    } else {
+      _addResult('⚠️ Get lessons: ${lessonsResult['error']}');
     }
 
     setState(() {
       _isLoading = false;
-      _status = 'Tests completed!';
+      _status = 'All tests completed!';
     });
   }
 

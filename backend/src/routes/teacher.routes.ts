@@ -37,33 +37,43 @@ router.get('/:teacherId/dashboard', async (req, res) => {
     }
 
     // Get total lessons
-    const totalLessonsResult = db.prepare('SELECT COUNT(*) as count FROM lessons').get();
-    const totalLessons = totalLessonsResult.count;
+    const totalLessonsResult = db.prepare('SELECT COUNT(*) as count FROM lessons').get() as { count: number };
+    const totalLessons = totalLessonsResult?.count || 0;
 
-    // Get completed lessons count (using IN clause for SQLite)
+    // Get completed lessons count per student (using IN clause for SQLite)
     const placeholders = studentIds.map(() => '?').join(',');
-    const completedResult = db.prepare(`
-      SELECT COUNT(DISTINCT lesson_id) as count
-      FROM student_progress
-      WHERE student_id IN (${placeholders}) AND completed = 1
-    `).get(...studentIds);
-    const lessonsCompleted = completedResult.count;
+    
+    // Count how many students completed each lesson fully
+    const completedLessonsResult = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM (
+        SELECT sp.student_id, sp.lesson_id
+        FROM student_progress sp
+        JOIN subtopics st ON sp.subtopic_id = st.id
+        WHERE sp.student_id IN (${placeholders}) AND sp.completed = 1
+        GROUP BY sp.student_id, sp.lesson_id
+        HAVING COUNT(*) = (
+          SELECT COUNT(*) FROM subtopics WHERE lesson_id = sp.lesson_id
+        )
+      )
+    `).get(...studentIds) as { count: number };
+    const lessonsCompleted = completedLessonsResult?.count || 0;
 
     // Get assessments completed
     const assessmentsResult = db.prepare(`
       SELECT COUNT(*) as count
       FROM assessment_scores
       WHERE student_id IN (${placeholders})
-    `).get(...studentIds);
-    const assessmentsCompleted = assessmentsResult.count;
+    `).get(...studentIds) as { count: number };
+    const assessmentsCompleted = assessmentsResult?.count || 0;
 
     // Get average assessment score
     const avgScoreResult = db.prepare(`
       SELECT AVG((score * 1.0 / max_score) * 100) as avg_score
       FROM assessment_scores
       WHERE student_id IN (${placeholders})
-    `).get(...studentIds);
-    const avgAssessmentScore = Math.round(avgScoreResult.avg_score || 0);
+    `).get(...studentIds) as { avg_score: number | null };
+    const avgAssessmentScore = Math.round(avgScoreResult?.avg_score || 0);
 
     // Get active students today
     const today = new Date().toISOString().split('T')[0];
@@ -71,16 +81,16 @@ router.get('/:teacherId/dashboard', async (req, res) => {
       SELECT COUNT(DISTINCT student_id) as count
       FROM engagement_logs
       WHERE student_id IN (${placeholders}) AND session_date = ?
-    `).get(...studentIds, today);
-    const activeToday = activeTodayResult.count;
+    `).get(...studentIds, today) as { count: number };
+    const activeToday = activeTodayResult?.count || 0;
 
     // Get average study time
     const avgTimeResult = db.prepare(`
       SELECT AVG(session_duration) as avg_time
       FROM engagement_logs
       WHERE student_id IN (${placeholders})
-    `).get(...studentIds);
-    const avgStudyTime = Math.round(avgTimeResult.avg_time || 0);
+    `).get(...studentIds) as { avg_time: number | null };
+    const avgStudyTime = Math.round(avgTimeResult?.avg_time || 0);
 
     // Calculate average progress
     const averageProgress = totalLessons > 0 
@@ -124,32 +134,53 @@ router.get('/:teacherId/students', async (req, res) => {
         c.grade,
         c.section,
         s.enrollment_date,
-        COUNT(DISTINCT CASE WHEN sp.completed = 1 THEN sp.lesson_id END) as completed_lessons,
         (SELECT COUNT(*) FROM lessons) as total_lessons,
         COALESCE(AVG((asc.score * 1.0 / asc.max_score) * 100), 0) as avg_score
       FROM students s
       JOIN classes c ON s.class_id = c.id
-      LEFT JOIN student_progress sp ON s.id = sp.student_id
       LEFT JOIN assessment_scores asc ON s.id = asc.student_id
       WHERE c.teacher_id = ?
       GROUP BY s.id, s.name, s.gender, c.grade, c.section, s.enrollment_date
       ORDER BY s.name
     `).all(teacherId);
 
-    const studentsData = students.map(row => ({
-      id: row.id,
-      name: row.name,
-      gender: row.gender,
-      grade: row.grade,
-      section: row.section,
-      enrollmentDate: row.enrollment_date,
-      completedLessons: row.completed_lessons,
-      totalLessons: row.total_lessons,
-      completionRate: row.total_lessons > 0 
-        ? Math.round((row.completed_lessons / row.total_lessons) * 100)
-        : 0,
-      avgScore: Math.round(row.avg_score)
-    }));
+    const studentsData = students.map(row => {
+      // Count completed lessons (where ALL subtopics are done)
+      // First, get all lessons with their subtopic counts
+      const completedLessonsResult = db.prepare(`
+        SELECT COUNT(*) as count
+        FROM (
+          SELECT sp.lesson_id
+          FROM student_progress sp
+          WHERE sp.student_id = ? AND sp.completed = 1
+          GROUP BY sp.lesson_id
+          HAVING COUNT(DISTINCT sp.subtopic_id) = (
+            SELECT COUNT(*) FROM subtopics WHERE lesson_id = sp.lesson_id
+          )
+        )
+      `).get(row.id) as { count: number } | undefined;
+      
+      const completedLessons = completedLessonsResult?.count || 0;
+      
+      const completionRate = (row.total_lessons as number) > 0 
+        ? Math.round((completedLessons / (row.total_lessons as number)) * 100)
+        : 0;
+      
+      console.log(`Student ${row.name}: ${completedLessons}/${row.total_lessons} lessons = ${completionRate}%`);
+      
+      return {
+        id: row.id,
+        name: row.name,
+        gender: row.gender,
+        grade: row.grade,
+        section: row.section,
+        enrollmentDate: row.enrollment_date,
+        completedLessons: completedLessons,
+        totalLessons: row.total_lessons as number,
+        completionRate: completionRate,
+        avgScore: Math.round(row.avg_score as number)
+      };
+    });
 
     res.json({
       success: true,
@@ -288,7 +319,7 @@ router.get('/:teacherId/lessons', async (req, res) => {
             GROUP BY sp2.student_id
             HAVING COUNT(*) = (SELECT COUNT(*) FROM subtopics WHERE lesson_id = ?)
           )
-        `).get(lesson.id, ...studentIds, lesson.id, lesson.id);
+        `).get(lesson.id, ...studentIds, lesson.id, lesson.id) as { count: number } | undefined;
         
         completedBy = completedResult?.count || 0;
 
@@ -298,7 +329,7 @@ router.get('/:teacherId/lessons', async (req, res) => {
           FROM student_progress sp
           JOIN subtopics st ON sp.subtopic_id = st.id
           WHERE st.lesson_id = ? AND sp.student_id IN (${placeholders})
-        `).get(lesson.id, ...studentIds);
+        `).get(lesson.id, ...studentIds) as { count: number } | undefined;
         
         inProgressBy = inProgressResult?.count || 0;
       }
@@ -532,5 +563,68 @@ function getTimeAgo(dateStr: string): string {
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
 }
+
+// Get all progress for teacher's students
+router.get('/:teacherId/progress/all', async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const progress = db.prepare(`
+      SELECT 
+        sp.student_id,
+        sp.lesson_id,
+        sp.subtopic_id,
+        sp.completed,
+        sp.completed_at
+      FROM student_progress sp
+      JOIN students s ON sp.student_id = s.id
+      JOIN classes c ON s.class_id = c.id
+      WHERE c.teacher_id = ?
+    `).all(teacherId);
+
+    res.json({
+      success: true,
+      data: progress
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Error fetching all progress:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch progress'
+    } as ApiResponse);
+  }
+});
+
+// Get all assessment scores for teacher's students
+router.get('/:teacherId/assessments/scores', async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const scores = db.prepare(`
+      SELECT 
+        asc.student_id,
+        asc.assessment_id,
+        asc.score,
+        asc.max_score,
+        asc.completed_at
+      FROM assessment_scores asc
+      JOIN students s ON asc.student_id = s.id
+      JOIN classes c ON s.class_id = c.id
+      WHERE c.teacher_id = ?
+      ORDER BY asc.completed_at DESC
+    `).all(teacherId);
+
+    res.json({
+      success: true,
+      data: scores
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Error fetching assessment scores:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch assessment scores'
+    } as ApiResponse);
+  }
+});
 
 export default router;

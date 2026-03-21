@@ -22,10 +22,12 @@ export function query(sql: string, params: any[] = []) {
   }
 }
 
-// Helper for transactions
+// Helper for transactions (sql.js doesn't support transactions like better-sqlite3)
+// This is a no-op wrapper for compatibility
 export function transaction(callback: () => void) {
-  const trans = db.transaction(callback);
-  return trans();
+  // sql.js doesn't have transaction support like better-sqlite3
+  // Just execute the callback directly
+  callback();
 }
 
 export default { query, transaction };

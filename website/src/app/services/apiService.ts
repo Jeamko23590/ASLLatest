@@ -121,6 +121,18 @@ class ApiService {
     return this.request(`/teachers/${teacherId}/charts`);
   }
 
+  async getTeacherProgress(teacherId: string) {
+    return this.request(`/teachers/${teacherId}/progress/all`);
+  }
+
+  async getTeacherAssessmentScores(teacherId: string) {
+    return this.request(`/teachers/${teacherId}/assessments/scores`);
+  }
+
+  async getAllAssessments() {
+    return this.request('/lessons/assessments/all');
+  }
+
   async getAdminCharts() {
     return this.request('/admin/charts');
   }

@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { ChevronDown, ChevronRight, CheckCircle, BookOpen, Award, Target, Search, AlertCircle } from 'lucide-react';
-import { useLessons, useStudents } from '@/app/hooks/useData';
-import { mockProgress } from '@/app/hooks/mockData';
+import { useLessons, useStudents, useProgress } from '@/app/hooks/useData';
 import { Badge } from '@/app/components/ui/badge';
 
 interface StudentProgress {
@@ -17,8 +16,14 @@ interface StudentProgress {
 
 export function TeacherProgressPage() {
   const { setPageContext } = useOutletContext<{ setPageContext: (context: any) => void }>();
+  
+  // Get teacher ID from localStorage
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const teacherId = user.id;
+  
   const { lessons } = useLessons();
-  const { students } = useStudents();
+  const { students } = useStudents(teacherId);
+  const { progress } = useProgress(teacherId);
   const [expandedLessons, setExpandedLessons] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'completed' | 'in-progress'>('all');
@@ -38,7 +43,7 @@ export function TeacherProgressPage() {
     
     students.forEach((student) => {
       // Check how many subtopics this student completed for this lesson
-      const studentSubtopicsForLesson = mockProgress.filter(
+      const studentSubtopicsForLesson = progress.filter(
         (p) => p.studentId === student.id && p.lessonId === lessonId && p.subtopicId
       );
       
@@ -55,7 +60,7 @@ export function TeacherProgressPage() {
 
   // Calculate subtopic completion rate based on how many students completed it
   const getSubtopicProgress = (lessonId: string, subtopicId: string) => {
-    const subtopicProgressData = mockProgress.filter(
+    const subtopicProgressData = progress.filter(
       (p) => p.lessonId === lessonId && p.subtopicId === subtopicId
     );
     
@@ -78,7 +83,7 @@ export function TeacherProgressPage() {
     lessons.forEach((lesson) => {
       students.forEach((student) => {
         if (lesson.subtopics && lesson.subtopics.length > 0) {
-          const studentSubtopicsForLesson = mockProgress.filter(
+          const studentSubtopicsForLesson = progress.filter(
             (p) => p.studentId === student.id && p.lessonId === lesson.id && p.subtopicId
           );
           
@@ -110,7 +115,7 @@ export function TeacherProgressPage() {
       inProgress: totalPossibleCompletions - totalLessonCompletions, // Remaining lesson slots
       completionRate,
     };
-  }, [mockProgress, lessons, students]);
+  }, [progress, lessons, students]);
 
   // Filter lessons based on search and filter type
   const filteredLessons = React.useMemo(() => {
@@ -125,7 +130,7 @@ export function TeacherProgressPage() {
       }
       return matchesSearch;
     });
-  }, [lessons, searchTerm, filterType, mockProgress]);
+  }, [lessons, searchTerm, filterType, progress]);
 
   const getProgressColor = (progress: number) => {
     if (progress >= 90) return '#22c55e';
@@ -152,7 +157,7 @@ export function TeacherProgressPage() {
           id: subtopic.id,
           title: subtopic.title,
           progress: getSubtopicProgress(lesson.id, subtopic.id),
-          studentsCompleted: mockProgress.filter(
+          studentsCompleted: progress.filter(
             p => p.lessonId === lesson.id && p.subtopicId === subtopic.id && p.completed
           ).length,
         })) || [];
