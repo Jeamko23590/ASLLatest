@@ -17,7 +17,7 @@
   ✅ Dependencies:         Installed
   ✅ Flutter Integration:  4/4 points verified
   ✅ APK Build:            235.9 MB
-  ✅ Network Config:       192.168.1.59:3000
+  ✅ Network Config:       192.168.1.138:3000
 
   Overall Score: 100/100 🌟
 
@@ -46,7 +46,7 @@ Flutter Integration:
 
 Build & Deployment:
   ✅ APK built              - 235.9 MB release APK
-  ✅ Network configured     - 192.168.1.59:3000
+  ✅ Network configured     - 192.168.1.138:3000
   ✅ Firewall script        - configure-network.bat
   ✅ Verification script    - verify-integration.ps1
 
@@ -134,9 +134,9 @@ Admin:
 
 🌐 NETWORK CONFIGURATION
 
-  Computer IP:    192.168.1.59
+  Computer IP:    192.168.1.138
   Backend Port:   3000
-  API URL:        http://192.168.1.59:3000/api
+  API URL:        http://192.168.1.138:3000/api
   Database:       backend/senyamatika.db
   Protocol:       HTTP (local network)
 

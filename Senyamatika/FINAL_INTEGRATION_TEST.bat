@@ -98,7 +98,7 @@ echo Your computer's IP addresses:
 ipconfig | findstr "IPv4"
 echo.
 echo ⚠️  Make sure your phone is on the same WiFi network!
-echo ⚠️  Current API configuration: 192.168.1.59:3000
+echo ⚠️  Current API configuration: 192.168.1.138:3000
 echo.
 
 echo [8/8] Checking firewall...

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiService {
   // Your WiFi IP address for physical device testing
-  static const String _localIP = '192.168.1.59';
+  static const String _localIP = '192.168.1.138';
   
   // Base URL configuration
   static String get baseUrl {
