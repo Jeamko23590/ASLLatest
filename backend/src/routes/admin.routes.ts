@@ -288,6 +288,165 @@ router.get('/classes', async (req, res) => {
   }
 });
 
+// Create class
+router.post('/classes', async (req, res) => {
+  try {
+    const { schoolId, grade, section, teacherId } = req.body;
+
+    if (!schoolId || !grade || !section) {
+      return res.status(400).json({
+        success: false,
+        error: 'School ID, grade, and section are required'
+      } as ApiResponse);
+    }
+
+    // Verify school exists
+    const school = db.prepare('SELECT id, name FROM schools WHERE id = ?').get(schoolId) as { id: string; name: string } | undefined;
+    if (!school) {
+      return res.status(404).json({
+        success: false,
+        error: 'School not found'
+      } as ApiResponse);
+    }
+
+    // Check for duplicate class in same school
+    const existingClass = db.prepare(
+      'SELECT id FROM classes WHERE school_id = ? AND grade = ? AND section = ?'
+    ).get(schoolId, grade, section);
+    if (existingClass) {
+      return res.status(400).json({
+        success: false,
+        error: 'A class with this grade and section already exists in this school'
+      } as ApiResponse);
+    }
+
+    const classId = Math.random().toString(36).substring(2, 15);
+    
+    db.prepare(`
+      INSERT INTO classes (id, school_id, grade, section, teacher_id)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(classId, schoolId, grade, section, teacherId || null);
+
+    const newClass = db.prepare(`
+      SELECT c.id, c.school_id, s.name as school_name, c.grade, c.section, c.teacher_id,
+        (t.first_name || ' ' || t.last_name) as teacher_name, 0 as student_count, c.created_at
+      FROM classes c
+      JOIN schools s ON c.school_id = s.id
+      LEFT JOIN teachers t ON c.teacher_id = t.id
+      WHERE c.id = ?
+    `).get(classId);
+
+    res.status(201).json({
+      success: true,
+      data: newClass,
+      message: 'Class created successfully'
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Error creating class:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create class'
+    } as ApiResponse);
+  }
+});
+
+// Update class
+router.put('/classes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { grade, section, teacherId } = req.body;
+
+    const existingClass = db.prepare('SELECT * FROM classes WHERE id = ?').get(id);
+    if (!existingClass) {
+      return res.status(404).json({
+        success: false,
+        error: 'Class not found'
+      } as ApiResponse);
+    }
+
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (grade) {
+      updates.push('grade = ?');
+      values.push(grade);
+    }
+    if (section) {
+      updates.push('section = ?');
+      values.push(section);
+    }
+    if (teacherId !== undefined) {
+      updates.push('teacher_id = ?');
+      values.push(teacherId || null);
+    }
+
+    if (updates.length > 0) {
+      values.push(id);
+      db.prepare(`UPDATE classes SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+    }
+
+    const updatedClass = db.prepare(`
+      SELECT c.id, c.school_id, s.name as school_name, c.grade, c.section, c.teacher_id,
+        (t.first_name || ' ' || t.last_name) as teacher_name, COUNT(st.id) as student_count, c.created_at
+      FROM classes c
+      JOIN schools s ON c.school_id = s.id
+      LEFT JOIN teachers t ON c.teacher_id = t.id
+      LEFT JOIN students st ON c.id = st.class_id
+      WHERE c.id = ?
+      GROUP BY c.id
+    `).get(id);
+
+    res.json({
+      success: true,
+      data: updatedClass,
+      message: 'Class updated successfully'
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Error updating class:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update class'
+    } as ApiResponse);
+  }
+});
+
+// Delete class
+router.delete('/classes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existingClass = db.prepare('SELECT id FROM classes WHERE id = ?').get(id);
+    if (!existingClass) {
+      return res.status(404).json({
+        success: false,
+        error: 'Class not found'
+      } as ApiResponse);
+    }
+
+    // Check if class has students
+    const studentCount = db.prepare('SELECT COUNT(*) as count FROM students WHERE class_id = ?').get(id) as { count: number };
+    if (studentCount.count > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Cannot delete class with ${studentCount.count} enrolled students. Please reassign or remove students first.`
+      } as ApiResponse);
+    }
+
+    db.prepare('DELETE FROM classes WHERE id = ?').run(id);
+
+    res.json({
+      success: true,
+      message: 'Class deleted successfully'
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Error deleting class:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete class'
+    } as ApiResponse);
+  }
+});
+
 // Get admin chart data
 router.get('/charts', async (req, res) => {
   try {

@@ -122,7 +122,7 @@ class SignLanguageService {
     'number': 'assets/DataSet/Dictionary/sign-number.webm',
     'numerator': 'assets/DataSet/Dictionary/sign-numerator.webm',
   };
-  
+
   /// Get all available signs as a dictionary (for dictionary page)
   static Map<String, String> getAllSigns() {
     final Map<String, String> allSigns = {};
@@ -173,29 +173,6 @@ class SignLanguageService {
     final List<String> signSequence = [];
     
     debugPrint('🔤 Translating: "$normalizedText"');
-    
-    // Check for fraction pattern (e.g., "1/2", "3/4") before other processing
-    final fractionMatch = RegExp(r'(\d+)/(\d+)').firstMatch(normalizedText);
-    if (fractionMatch != null) {
-      final numerator = fractionMatch.group(1)!;
-      final denominator = fractionMatch.group(2)!;
-      
-      debugPrint('🔢 Detected fraction: $numerator/$denominator');
-      
-      // Add numerator signs
-      int num = int.parse(numerator);
-      signSequence.addAll(_parseNumber(num));
-      
-      // Add fraction sign instead of divide
-      signSequence.add('assets/DataSet/Dictionary/sign-fraction.webm');
-      debugPrint('✅ Added fraction sign');
-      
-      // Add denominator signs
-      int denom = int.parse(denominator);
-      signSequence.addAll(_parseNumber(denom));
-      
-      return signSequence;
-    }
     
     // Replace word forms with symbols before processing
     String processedText = _replaceWordForms(normalizedText);
@@ -297,7 +274,7 @@ class SignLanguageService {
       signs.add(_thousandsSigns[thousands.toString()]!);
       debugPrint('  → Added thousands: $thousands');
     }
-    
+        
     // Extract hundreds (300, 400, etc.)
     int remainder = number % 1000;
     int hundreds = (remainder ~/ 100) * 100;
