@@ -18,7 +18,6 @@ router.post('/teacher/login', async (req, res) => {
       } as ApiResponse);
     }
 
-    // Find teacher
     const teacher = db.prepare('SELECT * FROM teachers WHERE employee_id = ?').get(employeeId);
 
     if (!teacher) {
@@ -28,7 +27,6 @@ router.post('/teacher/login', async (req, res) => {
       } as ApiResponse);
     }
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, teacher.password as string);
     if (!isValidPassword) {
       return res.status(401).json({
@@ -37,30 +35,22 @@ router.post('/teacher/login', async (req, res) => {
       } as ApiResponse);
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       { id: teacher.id, role: 'teacher', employeeId: teacher.employee_id },
       process.env.JWT_SECRET || 'default_secret',
       { expiresIn: '7d' }
     );
 
-    // Remove password from response
     const teacherData: any = { ...teacher };
     delete teacherData.password;
 
     res.json({
       success: true,
-      data: {
-        token,
-        user: teacherData
-      }
+      data: { token, user: teacherData }
     } as ApiResponse);
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Login failed'
-    } as ApiResponse);
+    res.status(500).json({ success: false, error: 'Login failed' } as ApiResponse);
   }
 });
 
@@ -76,49 +66,33 @@ router.post('/admin/login', async (req, res) => {
       } as ApiResponse);
     }
 
-    // Find admin
     const admin = db.prepare('SELECT * FROM admins WHERE email = ?').get(email);
 
     if (!admin) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid credentials'
-      } as ApiResponse);
+      return res.status(401).json({ success: false, error: 'Invalid credentials' } as ApiResponse);
     }
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, admin.password as string);
     if (!isValidPassword) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid credentials'
-      } as ApiResponse);
+      return res.status(401).json({ success: false, error: 'Invalid credentials' } as ApiResponse);
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       { id: admin.id, role: 'admin', email: admin.email },
       process.env.JWT_SECRET || 'default_secret',
       { expiresIn: '7d' }
     );
 
-    // Remove password from response
     const adminData: any = { ...admin };
     delete adminData.password;
 
     res.json({
       success: true,
-      data: {
-        token,
-        user: adminData
-      }
+      data: { token, user: adminData }
     } as ApiResponse);
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Login failed'
-    } as ApiResponse);
+    res.status(500).json({ success: false, error: 'Login failed' } as ApiResponse);
   }
 });
 
@@ -134,17 +108,12 @@ router.post('/login', async (req, res) => {
       } as ApiResponse);
     }
 
-    // Find student by email
     const student = db.prepare('SELECT * FROM students WHERE email = ?').get(email);
 
     if (!student) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid credentials'
-      } as ApiResponse);
+      return res.status(401).json({ success: false, error: 'Invalid credentials' } as ApiResponse);
     }
 
-    // Verify password
     if (!student.password) {
       return res.status(401).json({
         success: false,
@@ -154,35 +123,24 @@ router.post('/login', async (req, res) => {
 
     const isValidPassword = await bcrypt.compare(password, student.password as string);
     if (!isValidPassword) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid credentials'
-      } as ApiResponse);
+      return res.status(401).json({ success: false, error: 'Invalid credentials' } as ApiResponse);
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       { id: student.id, role: 'student', email: student.email },
       process.env.JWT_SECRET || 'default_secret',
       { expiresIn: '30d' }
     );
 
-    // Remove password from response
     delete student.password;
 
     res.json({
       success: true,
-      data: {
-        token,
-        user: student
-      }
+      data: { token, user: student }
     } as ApiResponse);
   } catch (error) {
     console.error('Student login error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Login failed'
-    } as ApiResponse);
+    res.status(500).json({ success: false, error: 'Login failed' } as ApiResponse);
   }
 });
 
@@ -198,36 +156,38 @@ router.post('/register', async (req, res) => {
       } as ApiResponse);
     }
 
-    // Check if student already exists by email
     const existingStudent = db.prepare('SELECT * FROM students WHERE email = ?').get(email);
-
     if (existingStudent) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email already registered'
-      } as ApiResponse);
+      return res.status(400).json({ success: false, error: 'Email already registered' } as ApiResponse);
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Find class if school and section provided
+    // Find class — support both "BSM CS-4B" and "4th Year - BSM CS-4B" formats
     let classId = null;
     if (school && section) {
+      console.log(`Registration: school="${school}" section="${section}"`); // ← DEBUG LOG
+
       const classRecord = db.prepare(`
         SELECT c.id FROM classes c
         JOIN schools s ON c.school_id = s.id
-        WHERE s.name = ? AND c.section = ?
-      `).get(school, section);
-      
+        WHERE LOWER(REPLACE(s.name, '-', ' ')) = LOWER(REPLACE(?, '-', ' '))
+        AND (
+          c.section = ?
+          OR c.grade || ' - ' || c.section = ?
+          OR ? LIKE '%' || c.section
+        )
+      `).get(school, section, section, section);
+
+      console.log(`Class found: ${classRecord ? (classRecord as any).id : 'NULL - walang nahanap!'}`); // ← DEBUG LOG
+
       if (classRecord) {
-        classId = classRecord.id;
+        classId = (classRecord as any).id;
       }
     }
 
-    // Create student with proper fields
     const studentId = Math.random().toString(36).substring(2, 15);
-    
+
     db.prepare(`
       INSERT INTO students (id, name, email, password, gender, class_id, enrollment_date)
       VALUES (?, ?, ?, ?, ?, ?, date('now'))
@@ -236,13 +196,9 @@ router.post('/register', async (req, res) => {
     const student = db.prepare('SELECT id, name, email, gender, class_id, enrollment_date FROM students WHERE id = ?').get(studentId) as any;
 
     if (!student) {
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to create student account'
-      } as ApiResponse);
+      return res.status(500).json({ success: false, error: 'Failed to create student account' } as ApiResponse);
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       { id: student.id, role: 'student', email: student.email },
       process.env.JWT_SECRET || 'default_secret',
@@ -252,16 +208,14 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       success: true,
       data: {
+        studentId: student.id,
         token,
         user: student
       }
     } as ApiResponse);
   } catch (error) {
     console.error('Student registration error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Registration failed'
-    } as ApiResponse);
+    res.status(500).json({ success: false, error: 'Registration failed' } as ApiResponse);
   }
 });
 
